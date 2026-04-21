@@ -68,8 +68,11 @@ async function get<T>(path: string): Promise<T> {
 }
 
 // Map our UI categories to Modrinth facets.
-export const CATEGORY_PRESETS = {
-  all: { label: "Все", facets: [] as string[][] },
+type FacetGroup = readonly string[];
+type Preset = { label: string; facets: readonly FacetGroup[] };
+
+export const CATEGORY_PRESETS: Record<string, Preset> = {
+  all: { label: "Все", facets: [] },
   visual: {
     label: "Визуал",
     facets: [["categories:'optimization'", "categories:'utility'"], ["project_type:shader"]],
@@ -101,7 +104,9 @@ export async function searchMods(opts: {
 
   const facets: string[][] = [];
   if (opts.category && opts.category !== "all") {
-    facets.push(...CATEGORY_PRESETS[opts.category].facets);
+    for (const group of CATEGORY_PRESETS[opts.category].facets) {
+      facets.push([...group]);
+    }
   }
   if (opts.loader) facets.push([`categories:'${opts.loader}'`]);
   // Always include actual mods/shaders/resourcepacks
