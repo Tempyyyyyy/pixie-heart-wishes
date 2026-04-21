@@ -13,6 +13,7 @@ import { Plus, Play, Trash2, Pencil, Package, Loader2, LogIn, Search, X, Replace
 import { searchMods, type ModrinthHit } from "@/lib/modrinth";
 import { AuthDialog } from "@/components/launcher/AuthDialog";
 import { LaunchMinecraftButton } from "@/components/launcher/LaunchMinecraftButton";
+import { Link } from "react-router-dom";
 
 type ModInInstance = { id: string; name: string; icon: string | null; slug: string };
 type Instance = {
@@ -166,7 +167,7 @@ const InstancesPage = () => {
           <p className="text-muted-foreground">Создавай сборки и управляй модами как в Modrinth.</p>
         </div>
         <div className="flex gap-2">
-          <LaunchMinecraftButton version="1.20.1" username="PixieTester" label="Тест запуска MC" />
+          <LaunchMinecraftButton version="1.20.1" label="Тест запуска MC" />
           <Button variant="hero" onClick={openCreate}>
             <Plus className="w-4 h-4 mr-1" />Новая сборка
           </Button>
@@ -186,9 +187,23 @@ const InstancesPage = () => {
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 pb-6">
         {instances.map(inst => (
           <article key={inst.id} className="group rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/50 hover:-translate-y-1 transition-all">
-            <div className="p-5">
+            <Link to={`/instances/${inst.id}`} className="block">
+              <div
+                className="h-28 relative"
+                style={{
+                  background: inst.icon_url
+                    ? `url(${inst.icon_url}) center/cover`
+                    : "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.5))",
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
+              </div>
+            </Link>
+            <div className="p-5 -mt-6 relative">
               <div className="flex items-start justify-between mb-3">
-                <h3 className="font-display font-bold text-lg truncate flex-1">{inst.name}</h3>
+                <Link to={`/instances/${inst.id}`} className="min-w-0 flex-1">
+                  <h3 className="font-display font-bold text-lg truncate group-hover:text-primary transition-colors">{inst.name}</h3>
+                </Link>
                 <Badge variant="secondary" className="ml-2 shrink-0">{inst.mods.length} модов</Badge>
               </div>
               {inst.description && <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{inst.description}</p>}
@@ -199,12 +214,16 @@ const InstancesPage = () => {
               <div className="grid grid-cols-2 gap-2">
                 <LaunchMinecraftButton
                   version={inst.mc_version}
-                  username="PixieTester"
+                  loader={inst.loader}
+                  instanceId={inst.id}
                   label="Играть"
                   size="sm"
+                  variant="hero"
                 />
-                <Button variant="outline" size="sm" onClick={() => setManagingId(inst.id)}>
-                  <Package className="w-4 h-4 mr-1" />Моды
+                <Button variant="outline" size="sm" asChild>
+                  <Link to={`/instances/${inst.id}`}>
+                    <Package className="w-4 h-4 mr-1" />Открыть
+                  </Link>
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => openEdit(inst)}>
                   <Pencil className="w-4 h-4 mr-1" />Изменить

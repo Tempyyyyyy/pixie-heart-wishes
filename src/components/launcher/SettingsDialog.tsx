@@ -2,15 +2,16 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings as SettingsIcon, Volume2, Monitor, Cpu, Languages } from "lucide-react";
+import { Settings as SettingsIcon, Volume2, Monitor, Cpu, Languages, User } from "lucide-react";
+import { useLaunchPrefs } from "@/lib/launchSettings";
 
 type Settings = {
   language: "ru" | "en";
   volume: number;
-  ramGb: number;
   closeOnLaunch: boolean;
   betaFeatures: boolean;
   showFps: boolean;
@@ -20,7 +21,6 @@ type Settings = {
 const DEFAULTS: Settings = {
   language: "ru",
   volume: 80,
-  ramGb: 4,
   closeOnLaunch: false,
   betaFeatures: true,
   showFps: false,
@@ -49,10 +49,18 @@ export const useSettings = () => {
 
 export const SettingsDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) => {
   const { settings, update } = useSettings();
+  const { prefs, update: updatePrefs } = useLaunchPrefs();
+  const [nickDraft, setNickDraft] = useState(prefs.username);
+
+  useEffect(() => { setNickDraft(prefs.username); }, [prefs.username, open]);
+
+  const saveNick = () => {
+    updatePrefs({ username: nickDraft });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center">
@@ -66,7 +74,24 @@ export const SettingsDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
         </DialogHeader>
 
         <div className="space-y-6 py-2">
-          <Section icon={Languages} title="Язык">
+          <Section icon={User} title="Ник в Minecraft (офлайн)" description="Используется при запуске игры без Microsoft-аккаунта. Только латиница, цифры, _.">
+            <div className="flex gap-2">
+              <Input
+                value={nickDraft}
+                onChange={(e) => setNickDraft(e.target.value.replace(/[^A-Za-z0-9_]/g, "").slice(0, 16))}
+                placeholder="Steve"
+                maxLength={16}
+              />
+              <Button onClick={saveNick} disabled={nickDraft === prefs.username || !nickDraft}>Сохранить</Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Текущий: <span className="font-mono text-foreground">{prefs.username}</span></p>
+          </Section>
+
+          <Section icon={Cpu} title={`Память: ${prefs.ramGb} ГБ`} description="Сколько RAM выделять Java при запуске Minecraft">
+            <Slider value={[prefs.ramGb]} min={1} max={32} step={1} onValueChange={([v]) => updatePrefs({ ramGb: v })} />
+          </Section>
+
+          <Section icon={Languages} title="Язык интерфейса">
             <Select value={settings.language} onValueChange={(v) => update({ language: v as Settings["language"] })}>
               <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -76,15 +101,11 @@ export const SettingsDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
             </Select>
           </Section>
 
-          <Section icon={Cpu} title={`Память: ${settings.ramGb} ГБ`} description="Сколько RAM выделять Java">
-            <Slider value={[settings.ramGb]} min={1} max={32} step={1} onValueChange={([v]) => update({ ramGb: v })} />
-          </Section>
-
-          <Section icon={Volume2} title={`Громкость: ${settings.volume}%`}>
+          <Section icon={Volume2} title={`Громкость лаунчера: ${settings.volume}%`}>
             <Slider value={[settings.volume]} min={0} max={100} step={5} onValueChange={([v]) => update({ volume: v })} />
           </Section>
 
-          <Section icon={Monitor} title="Разрешение окна">
+          <Section icon={Monitor} title="Разрешение окна игры">
             <Select value={settings.resolution} onValueChange={(v) => update({ resolution: v as Settings["resolution"] })}>
               <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
               <SelectContent>

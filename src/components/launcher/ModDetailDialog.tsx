@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Download, ExternalLink, Loader2, Heart, Calendar, User, Tag, FileBox } from "lucide-react";
+import { Download, ExternalLink, Loader2, Heart, Calendar, User, Tag, FileBox, Package, Layers } from "lucide-react";
 import { type ModrinthHit, getProject, getProjectVersions, downloadFile, modrinthUrl, type ModrinthProject, type ModrinthVersion } from "@/lib/modrinth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 type Props = {
   mod: ModrinthHit | null;
@@ -20,6 +21,8 @@ const formatNumber = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(n >= 10000
 export const ModDetailDialog = ({ mod, onOpenChange }: Props) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [installing, setInstalling] = useState(false);
   const [project, setProject] = useState<ModrinthProject | null>(null);
   const [versions, setVersions] = useState<ModrinthVersion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,6 +55,61 @@ export const ModDetailDialog = ({ mod, onOpenChange }: Props) => {
     }).eq("id", user.id);
     if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
     toast({ title: "Сохранено", description: `${mod.title} — твой любимый мод` });
+  };
+
+  const installAsInstance = async (v: ModrinthVersion) => {
+    if (!user || !mod) {
+      toast({ title: "Нужен вход", description: "Войди, чтобы создать сборку", variant: "destructive" });
+      return;
+    }
+    const file = v.files.find(f => f.primary) ?? v.files[0];
+    if (!file) return toast({ title: "Файл недоступен", variant: "destructive" });
+
+    setInstalling(true);
+    try {
+      const mcVer = v.game_versions[0] ?? "1.20.1";
+      const loader = (v.loaders[0] ?? "fabric").toLowerCase();
+
+      // 1. Создаём инстанс в БД
+      const { data: inst, error } = await supabase.from("instances").insert({
+        user_id: user.id,
+        name: mod.title,
+        description: mod.description,
+        mc_version: mcVer,
+        loader,
+        icon_url: mod.icon_url,
+        mods: [],
+        mrpack_url: file.url,
+        modrinth_project_id: mod.project_id,
+      }).select().single();
+      if (error) throw error;
+
+      toast({ title: "Сборка создана", description: mod.title });
+
+      // 2. Если в Electron — устанавливаем .mrpack
+      if (window.electronAPI?.isElectron) {
+        toast({ title: "Установка модпака…", description: "Смотри логи в правом нижнем углу" });
+        const res = await window.electronAPI.installMrpack({
+          url: file.url,
+          instanceId: inst.id,
+          instanceName: mod.title,
+        });
+        if (!res.ok) {
+          toast({ title: "Ошибка установки", description: res.error, variant: "destructive" });
+        } else {
+          toast({ title: "Модпак готов!", description: res.message });
+        }
+      } else {
+        toast({ title: "Сборка сохранена", description: "Открой в десктоп-лаунчере для установки модов" });
+      }
+
+      onOpenChange(false);
+      navigate(`/instances/${inst.id}`);
+    } catch (e) {
+      toast({ title: "Ошибка", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setInstalling(false);
+    }
   };
 
   return (
@@ -109,10 +167,17 @@ export const ModDetailDialog = ({ mod, onOpenChange }: Props) => {
                               <span>{v.loaders.join(", ")}</span>
                             </div>
                           </div>
-                          <Button size="sm" variant="hero" onClick={() => handleDownload(v)} disabled={!file}>
-                            <Download className="w-4 h-4 mr-1" />
-                            {file ? `${(file.size / 1024 / 1024).toFixed(1)} МБ` : "—"}
-                          </Button>
+                          {mod.project_type === "modpack" ? (
+                            <Button size="sm" variant="hero" onClick={() => installAsInstance(v)} disabled={!file || installing}>
+                              {installing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Layers className="w-4 h-4 mr-1" />}
+                              Установить
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="hero" onClick={() => handleDownload(v)} disabled={!file}>
+                              <Download className="w-4 h-4 mr-1" />
+                              {file ? `${(file.size / 1024 / 1024).toFixed(1)} МБ` : "—"}
+                            </Button>
+                          )}
                         </div>
                       );
                     })}
