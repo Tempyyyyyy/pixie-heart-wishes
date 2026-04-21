@@ -57,6 +57,61 @@ export const ModDetailDialog = ({ mod, onOpenChange }: Props) => {
     toast({ title: "Сохранено", description: `${mod.title} — твой любимый мод` });
   };
 
+  const installAsInstance = async (v: ModrinthVersion) => {
+    if (!user || !mod) {
+      toast({ title: "Нужен вход", description: "Войди, чтобы создать сборку", variant: "destructive" });
+      return;
+    }
+    const file = v.files.find(f => f.primary) ?? v.files[0];
+    if (!file) return toast({ title: "Файл недоступен", variant: "destructive" });
+
+    setInstalling(true);
+    try {
+      const mcVer = v.game_versions[0] ?? "1.20.1";
+      const loader = (v.loaders[0] ?? "fabric").toLowerCase();
+
+      // 1. Создаём инстанс в БД
+      const { data: inst, error } = await supabase.from("instances").insert({
+        user_id: user.id,
+        name: mod.title,
+        description: mod.description,
+        mc_version: mcVer,
+        loader,
+        icon_url: mod.icon_url,
+        mods: [],
+        mrpack_url: file.url,
+        modrinth_project_id: mod.project_id,
+      }).select().single();
+      if (error) throw error;
+
+      toast({ title: "Сборка создана", description: mod.title });
+
+      // 2. Если в Electron — устанавливаем .mrpack
+      if (window.electronAPI?.isElectron) {
+        toast({ title: "Установка модпака…", description: "Смотри логи в правом нижнем углу" });
+        const res = await window.electronAPI.installMrpack({
+          url: file.url,
+          instanceId: inst.id,
+          instanceName: mod.title,
+        });
+        if (!res.ok) {
+          toast({ title: "Ошибка установки", description: res.error, variant: "destructive" });
+        } else {
+          toast({ title: "Модпак готов!", description: res.message });
+        }
+      } else {
+        toast({ title: "Сборка сохранена", description: "Открой в десктоп-лаунчере для установки модов" });
+      }
+
+      onOpenChange(false);
+      navigate(`/instances/${inst.id}`);
+    } catch (e) {
+      toast({ title: "Ошибка", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setInstalling(false);
+    }
+  };
+
   return (
     <Dialog open={!!mod} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0">
