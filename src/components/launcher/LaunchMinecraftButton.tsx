@@ -2,12 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Terminal, X, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useLaunchPrefs } from "@/lib/launchSettings";
 
 declare global {
   interface Window {
     electronAPI?: {
       isElectron: boolean;
-      launchMinecraft: (opts: { username?: string; version?: string }) => Promise<{ ok: boolean; error?: string; message?: string }>;
+      launchMinecraft: (opts: {
+        username?: string;
+        version?: string;
+        loader?: string;
+        loaderVersion?: string;
+        instanceId?: string;
+        ramGb?: number;
+      }) => Promise<{ ok: boolean; error?: string; message?: string }>;
+      installMrpack: (opts: {
+        url: string;
+        instanceId: string;
+        instanceName: string;
+      }) => Promise<{ ok: boolean; error?: string; message?: string; mc_version?: string; loader?: string; loader_version?: string }>;
       onLaunchLog: (cb: (msg: string) => void) => () => void;
     };
   }
@@ -15,19 +28,29 @@ declare global {
 
 export const LaunchMinecraftButton = ({
   version = "1.20.1",
-  username = "PixieTester",
+  loader = "vanilla",
+  loaderVersion,
+  instanceId,
+  username: usernameProp,
   label = "Запустить Minecraft",
   size = "default" as "default" | "sm" | "lg",
+  variant = "default" as "default" | "hero" | "play" | "outline",
 }: {
   version?: string;
+  loader?: string;
+  loaderVersion?: string;
+  instanceId?: string;
   username?: string;
   label?: string;
   size?: "default" | "sm" | "lg";
+  variant?: "default" | "hero" | "play" | "outline";
 }) => {
   const [launching, setLaunching] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
+  const { prefs } = useLaunchPrefs();
+  const username = usernameProp || prefs.username;
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -52,9 +75,16 @@ export const LaunchMinecraftButton = ({
     }
     setLaunching(true);
     setOpen(true);
-    setLogs([`▶ Запрос: ${username} • Minecraft ${version}`]);
+    setLogs([`▶ Запрос: ${username} • Minecraft ${version} • ${loader}${loaderVersion ? ` ${loaderVersion}` : ""}`]);
     try {
-      const res = await window.electronAPI.launchMinecraft({ username, version });
+      const res = await window.electronAPI.launchMinecraft({
+        username,
+        version,
+        loader,
+        loaderVersion,
+        instanceId,
+        ramGb: prefs.ramGb,
+      });
       if (!res.ok) {
         toast({ title: "Не удалось запустить", description: res.error, variant: "destructive" });
       } else {
@@ -69,7 +99,7 @@ export const LaunchMinecraftButton = ({
 
   return (
     <>
-      <Button onClick={onClick} disabled={launching} size={size} className="gap-2">
+      <Button onClick={onClick} disabled={launching} size={size} variant={variant} className="gap-2">
         {launching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
         {label}
       </Button>
@@ -79,7 +109,7 @@ export const LaunchMinecraftButton = ({
           <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/50">
             <Terminal className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium">Лог запуска</span>
-            <span className="text-xs text-muted-foreground ml-2">{username} • {version}</span>
+            <span className="text-xs text-muted-foreground ml-2 truncate">{username} • {version} • {loader}</span>
             <button
               onClick={() => setOpen(false)}
               className="ml-auto p-1 rounded hover:bg-accent"
