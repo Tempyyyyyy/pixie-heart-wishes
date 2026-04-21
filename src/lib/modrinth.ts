@@ -85,9 +85,9 @@ export const CATEGORY_PRESETS: Record<string, Preset> = {
   adventure: { label: "Приключения", facets: [["categories:'adventure'"]] },
   magic: { label: "Магия", facets: [["categories:'magic'"]] },
   tech: { label: "Техно", facets: [["categories:'technology'"]] },
-} as const;
+};
 
-export type CategoryKey = keyof typeof CATEGORY_PRESETS;
+export type CategoryKey = string;
 
 export async function searchMods(opts: {
   query?: string;
