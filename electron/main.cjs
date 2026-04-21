@@ -4,7 +4,7 @@ const path = require('path');
 // URL опубликованного лаунчера. Если ещё не опубликован — fallback на preview.
 const LAUNCHER_URL =
   process.env.LAUNCHER_URL ||
-  'https://id-preview--16669cf3-880b-4775-8390-015a4bd28f59.lovable.app';
+  'https://pixie-heart-wishes.lovable.app';
 
 let mainWindow = null;
 
