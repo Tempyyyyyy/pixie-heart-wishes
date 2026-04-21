@@ -1,15 +1,24 @@
-import { NavLink } from "react-router-dom";
-import { Home, Package, Layers, User, Newspaper, Server, Shirt, Flame, Box, Palette, Sparkles, Plug } from "lucide-react";
+import { useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
+import { Home, Package, Layers, User, Newspaper, Server, Shirt, Flame, Box, Palette, Sparkles, Plug, ChevronDown, Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { to: "/", label: "Главная", icon: Home, exact: true },
-  { to: "/instances", label: "Сборки", icon: Layers },
+const modsChildren = [
   { to: "/library", label: "Моды", icon: Package },
-  { to: "/modpacks", label: "Modpacks", icon: Box },
-  { to: "/resourcepacks", label: "Текстуры", icon: Palette },
+  { to: "/modpacks", label: "Сборки модов", icon: Box },
+  { to: "/resourcepacks", label: "Текстур-паки", icon: Palette },
   { to: "/shaders", label: "Шейдеры", icon: Sparkles },
   { to: "/plugins", label: "Плагины", icon: Plug },
+];
+
+const modsPaths = modsChildren.map((c) => c.to);
+
+const topItems = [
+  { to: "/", label: "Главная", icon: Home, exact: true },
+  { to: "/instances", label: "Мои сборки", icon: Layers },
+];
+
+const bottomItems = [
   { to: "/servers", label: "Серверы", icon: Server },
   { to: "/skins", label: "Скины", icon: Shirt },
   { to: "/news", label: "Новости", icon: Newspaper },
