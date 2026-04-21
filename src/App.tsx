@@ -10,6 +10,7 @@ import Resourcepacks from "./pages/Resourcepacks.tsx";
 import Shaders from "./pages/Shaders.tsx";
 import Plugins from "./pages/Plugins.tsx";
 import Instances from "./pages/Instances.tsx";
+import InstanceDetail from "./pages/InstanceDetail.tsx";
 import Profile from "./pages/Profile.tsx";
 import News from "./pages/News.tsx";
 import Servers from "./pages/Servers.tsx";
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/shaders" element={<Shaders />} />
           <Route path="/plugins" element={<Plugins />} />
           <Route path="/instances" element={<Instances />} />
+          <Route path="/instances/:id" element={<InstanceDetail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/news" element={<News />} />
           <Route path="/servers" element={<Servers />} />

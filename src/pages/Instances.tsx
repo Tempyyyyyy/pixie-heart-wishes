@@ -13,6 +13,7 @@ import { Plus, Play, Trash2, Pencil, Package, Loader2, LogIn, Search, X, Replace
 import { searchMods, type ModrinthHit } from "@/lib/modrinth";
 import { AuthDialog } from "@/components/launcher/AuthDialog";
 import { LaunchMinecraftButton } from "@/components/launcher/LaunchMinecraftButton";
+import { Link } from "react-router-dom";
 
 type ModInInstance = { id: string; name: string; icon: string | null; slug: string };
 type Instance = {
