@@ -1,15 +1,19 @@
 import { NavLink } from "react-router-dom";
-import { Home, Package, Layers, User, Newspaper, Server, Shirt, Flame } from "lucide-react";
+import { Home, Package, Layers, User, Newspaper, Server, Shirt, Flame, Box, Palette, Sparkles, Plug } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/", label: "Главная", icon: Home, exact: true },
-  { to: "/library", label: "Каталог", icon: Package },
   { to: "/instances", label: "Сборки", icon: Layers },
-  { to: "/profile", label: "Профиль", icon: User },
-  { to: "/news", label: "Новости", icon: Newspaper },
+  { to: "/library", label: "Моды", icon: Package },
+  { to: "/modpacks", label: "Modpacks", icon: Box },
+  { to: "/resourcepacks", label: "Текстуры", icon: Palette },
+  { to: "/shaders", label: "Шейдеры", icon: Sparkles },
+  { to: "/plugins", label: "Плагины", icon: Plug },
   { to: "/servers", label: "Серверы", icon: Server },
   { to: "/skins", label: "Скины", icon: Shirt },
+  { to: "/news", label: "Новости", icon: Newspaper },
+  { to: "/profile", label: "Профиль", icon: User },
 ];
 
 export const Sidebar = () => {
