@@ -167,10 +167,17 @@ export const ModDetailDialog = ({ mod, onOpenChange }: Props) => {
                               <span>{v.loaders.join(", ")}</span>
                             </div>
                           </div>
-                          <Button size="sm" variant="hero" onClick={() => handleDownload(v)} disabled={!file}>
-                            <Download className="w-4 h-4 mr-1" />
-                            {file ? `${(file.size / 1024 / 1024).toFixed(1)} МБ` : "—"}
-                          </Button>
+                          {mod.project_type === "modpack" ? (
+                            <Button size="sm" variant="hero" onClick={() => installAsInstance(v)} disabled={!file || installing}>
+                              {installing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Layers className="w-4 h-4 mr-1" />}
+                              Установить
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="hero" onClick={() => handleDownload(v)} disabled={!file}>
+                              <Download className="w-4 h-4 mr-1" />
+                              {file ? `${(file.size / 1024 / 1024).toFixed(1)} МБ` : "—"}
+                            </Button>
+                          )}
                         </div>
                       );
                     })}
