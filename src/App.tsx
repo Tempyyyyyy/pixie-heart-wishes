@@ -5,6 +5,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import Library from "./pages/Library.tsx";
+import Modpacks from "./pages/Modpacks.tsx";
+import Resourcepacks from "./pages/Resourcepacks.tsx";
+import Shaders from "./pages/Shaders.tsx";
+import Plugins from "./pages/Plugins.tsx";
 import Instances from "./pages/Instances.tsx";
 import Profile from "./pages/Profile.tsx";
 import News from "./pages/News.tsx";
@@ -23,6 +27,10 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/library" element={<Library />} />
+          <Route path="/modpacks" element={<Modpacks />} />
+          <Route path="/resourcepacks" element={<Resourcepacks />} />
+          <Route path="/shaders" element={<Shaders />} />
+          <Route path="/plugins" element={<Plugins />} />
           <Route path="/instances" element={<Instances />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/news" element={<News />} />
