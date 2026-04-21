@@ -165,9 +165,12 @@ const InstancesPage = () => {
           <h1 className="font-display font-bold text-3xl md:text-4xl mb-2">Твои сборки</h1>
           <p className="text-muted-foreground">Создавай сборки и управляй модами как в Modrinth.</p>
         </div>
-        <Button variant="hero" onClick={openCreate}>
-          <Plus className="w-4 h-4 mr-1" />Новая сборка
-        </Button>
+        <div className="flex gap-2">
+          <LaunchMinecraftButton version="1.20.1" username="PixieTester" label="Тест запуска MC" />
+          <Button variant="hero" onClick={openCreate}>
+            <Plus className="w-4 h-4 mr-1" />Новая сборка
+          </Button>
+        </div>
       </header>
 
       {loading && <div className="py-20 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}
