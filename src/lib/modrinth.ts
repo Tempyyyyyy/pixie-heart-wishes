@@ -139,3 +139,20 @@ export const LOADERS_BY_TYPE: Record<ProjectType, string[]> = {
 export const COMMON_GAME_VERSIONS = [
   "1.21.4", "1.21.1", "1.21", "1.20.6", "1.20.4", "1.20.1", "1.19.4", "1.19.2", "1.18.2", "1.16.5", "1.12.2", "1.8.9",
 ];
+
+// Backwards-compat helper used by older callers (Profile, Instances picker).
+// Just searches mods only.
+export async function searchMods(opts: {
+  query?: string;
+  loader?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return searchProjects({
+    query: opts.query,
+    projectType: "mod",
+    loader: opts.loader,
+    limit: opts.limit,
+    offset: opts.offset,
+  });
+}
