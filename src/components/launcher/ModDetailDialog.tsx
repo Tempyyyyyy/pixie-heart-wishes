@@ -132,7 +132,7 @@ export const ModDetailDialog = ({ mod, onOpenChange }: Props) => {
               </TabsContent>
 
               <TabsContent value="links" className="px-6 mt-4 space-y-2 pb-6">
-                <LinkRow label="На Modrinth" url={modrinthUrl(mod.slug)} />
+                <LinkRow label="На Modrinth" url={modrinthUrl(mod.slug, mod.project_type)} />
                 {project?.source_url && <LinkRow label="Исходники" url={project.source_url} />}
                 {project?.issues_url && <LinkRow label="Баги / Issues" url={project.issues_url} />}
                 {project?.wiki_url && <LinkRow label="Wiki" url={project.wiki_url} />}
@@ -146,7 +146,7 @@ export const ModDetailDialog = ({ mod, onOpenChange }: Props) => {
                 В любимые
               </Button>
               <Button variant="outline" asChild className="flex-1">
-                <a href={modrinthUrl(mod.slug)} target="_blank" rel="noopener noreferrer">
+                <a href={modrinthUrl(mod.slug, mod.project_type)} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="w-4 h-4 mr-1" />
                   Открыть Modrinth
                 </a>
