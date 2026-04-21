@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Play, Trash2, Pencil, Package, Loader2, LogIn, Search, X, Replace, Layers } from "lucide-react";
 import { searchMods, type ModrinthHit } from "@/lib/modrinth";
 import { AuthDialog } from "@/components/launcher/AuthDialog";
+import { LaunchMinecraftButton } from "@/components/launcher/LaunchMinecraftButton";
 
 type ModInInstance = { id: string; name: string; icon: string | null; slug: string };
 type Instance = {
@@ -164,9 +165,12 @@ const InstancesPage = () => {
           <h1 className="font-display font-bold text-3xl md:text-4xl mb-2">Твои сборки</h1>
           <p className="text-muted-foreground">Создавай сборки и управляй модами как в Modrinth.</p>
         </div>
-        <Button variant="hero" onClick={openCreate}>
-          <Plus className="w-4 h-4 mr-1" />Новая сборка
-        </Button>
+        <div className="flex gap-2">
+          <LaunchMinecraftButton version="1.20.1" username="PixieTester" label="Тест запуска MC" />
+          <Button variant="hero" onClick={openCreate}>
+            <Plus className="w-4 h-4 mr-1" />Новая сборка
+          </Button>
+        </div>
       </header>
 
       {loading && <div className="py-20 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}
@@ -193,9 +197,12 @@ const InstancesPage = () => {
                 <Badge variant="outline" className="text-[10px]">{inst.mc_version}</Badge>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="play" size="sm" onClick={() => toast({ title: "Запуск", description: `${inst.name} запускается…` })}>
-                  <Play className="w-4 h-4 mr-1 fill-current" />Играть
-                </Button>
+                <LaunchMinecraftButton
+                  version={inst.mc_version}
+                  username="PixieTester"
+                  label="Играть"
+                  size="sm"
+                />
                 <Button variant="outline" size="sm" onClick={() => setManagingId(inst.id)}>
                   <Package className="w-4 h-4 mr-1" />Моды
                 </Button>
