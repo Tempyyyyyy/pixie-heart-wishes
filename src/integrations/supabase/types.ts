@@ -16,37 +16,46 @@ export type Database = {
     Tables: {
       instances: {
         Row: {
+          banner_url: string | null
           created_at: string
           description: string | null
           icon_url: string | null
           id: string
           loader: string
           mc_version: string
+          modrinth_project_id: string | null
           mods: Json
+          mrpack_url: string | null
           name: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          banner_url?: string | null
           created_at?: string
           description?: string | null
           icon_url?: string | null
           id?: string
           loader?: string
           mc_version?: string
+          modrinth_project_id?: string | null
           mods?: Json
+          mrpack_url?: string | null
           name: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          banner_url?: string | null
           created_at?: string
           description?: string | null
           icon_url?: string | null
           id?: string
           loader?: string
           mc_version?: string
+          modrinth_project_id?: string | null
           mods?: Json
+          mrpack_url?: string | null
           name?: string
           updated_at?: string
           user_id?: string
@@ -55,33 +64,45 @@ export type Database = {
       }
       profiles: {
         Row: {
+          achievements: number
           avatar_url: string | null
+          banner_url: string | null
           created_at: string
           display_name: string | null
           favorite_mod_icon: string | null
           favorite_mod_id: string | null
           favorite_mod_name: string | null
+          hours_played: number
           id: string
+          mod_installs: number
           updated_at: string
         }
         Insert: {
+          achievements?: number
           avatar_url?: string | null
+          banner_url?: string | null
           created_at?: string
           display_name?: string | null
           favorite_mod_icon?: string | null
           favorite_mod_id?: string | null
           favorite_mod_name?: string | null
+          hours_played?: number
           id: string
+          mod_installs?: number
           updated_at?: string
         }
         Update: {
+          achievements?: number
           avatar_url?: string | null
+          banner_url?: string | null
           created_at?: string
           display_name?: string | null
           favorite_mod_icon?: string | null
           favorite_mod_id?: string | null
           favorite_mod_name?: string | null
+          hours_played?: number
           id?: string
+          mod_installs?: number
           updated_at?: string
         }
         Relationships: []
