@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Download, ExternalLink, Loader2, Heart, Calendar, User, Tag, FileBox } from "lucide-react";
+import { Download, ExternalLink, Loader2, Heart, Calendar, User, Tag, FileBox, Package, Layers } from "lucide-react";
 import { type ModrinthHit, getProject, getProjectVersions, downloadFile, modrinthUrl, type ModrinthProject, type ModrinthVersion } from "@/lib/modrinth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 type Props = {
   mod: ModrinthHit | null;
@@ -20,6 +21,8 @@ const formatNumber = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(n >= 10000
 export const ModDetailDialog = ({ mod, onOpenChange }: Props) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [installing, setInstalling] = useState(false);
   const [project, setProject] = useState<ModrinthProject | null>(null);
   const [versions, setVersions] = useState<ModrinthVersion[]>([]);
   const [loading, setLoading] = useState(false);
