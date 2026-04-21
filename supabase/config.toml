@@ -1,1 +1,4 @@
 project_id = "iykuoicwycnmhkygqeqb"
+
+[functions.modrinth]
+verify_jwt = false
