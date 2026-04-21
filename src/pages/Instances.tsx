@@ -197,9 +197,12 @@ const InstancesPage = () => {
                 <Badge variant="outline" className="text-[10px]">{inst.mc_version}</Badge>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="play" size="sm" onClick={() => toast({ title: "Запуск", description: `${inst.name} запускается…` })}>
-                  <Play className="w-4 h-4 mr-1 fill-current" />Играть
-                </Button>
+                <LaunchMinecraftButton
+                  version={inst.mc_version}
+                  username="PixieTester"
+                  label="Играть"
+                  size="sm"
+                />
                 <Button variant="outline" size="sm" onClick={() => setManagingId(inst.id)}>
                   <Package className="w-4 h-4 mr-1" />Моды
                 </Button>
