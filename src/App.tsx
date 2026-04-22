@@ -26,6 +26,7 @@ const AnimatedRoutes = () => {
     <div key={location.pathname} className="animate-page-in">
       <Routes location={location}>
         <Route path="/" element={<Index />} />
+        <Route path="/index.html" element={<Index />} />
         <Route path="/library" element={<Library />} />
         <Route path="/modpacks" element={<Modpacks />} />
         <Route path="/resourcepacks" element={<Resourcepacks />} />
