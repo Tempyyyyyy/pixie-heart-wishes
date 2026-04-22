@@ -82,8 +82,6 @@ const ProfilePage = () => {
       .then(({ data }) => setInstances((data as InstanceCard[]) ?? []));
   }, [user]);
 
-  }, [user]);
-
   const onAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
