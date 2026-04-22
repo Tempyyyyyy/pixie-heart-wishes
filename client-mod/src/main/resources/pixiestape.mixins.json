@@ -3,7 +3,9 @@
   "package": "com.pixiestape.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "EntityRendererMixin"
+    "PlayerEntityRendererMixin",
+    "PlayerListHudMixin",
+    "ChatHudMixin"
   ],
   "injectors": {
     "defaultRequire": 1
