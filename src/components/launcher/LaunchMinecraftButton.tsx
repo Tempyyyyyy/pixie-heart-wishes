@@ -15,13 +15,16 @@ declare global {
         loaderVersion?: string;
         instanceId?: string;
         ramGb?: number;
-      }) => Promise<{ ok: boolean; error?: string; message?: string }>;
+        mods?: Array<{ id: string; name: string; slug?: string; source?: string }>;
+      }) => Promise<{ ok: boolean; error?: string; message?: string; modsCount?: number }>;
       installMrpack: (opts: {
         url: string;
         instanceId: string;
         instanceName: string;
-      }) => Promise<{ ok: boolean; error?: string; message?: string; mc_version?: string; loader?: string; loader_version?: string }>;
+      }) => Promise<{ ok: boolean; error?: string; message?: string; mc_version?: string; loader?: string; loader_version?: string; mods?: Array<{ id: string; name: string; slug: string; icon: string | null; file?: string; source?: string }> }>;
+      downloadMod: (opts: { instanceId: string; projectId: string; slug?: string; mcVersion?: string; loader?: string }) => Promise<{ ok: boolean; error?: string; filename?: string }>;
       onLaunchLog: (cb: (msg: string) => void) => () => void;
+      onSessionEnded: (cb: (data: { instanceId: string | null; seconds: number }) => void) => () => void;
     };
   }
 }
@@ -31,6 +34,7 @@ export const LaunchMinecraftButton = ({
   loader = "vanilla",
   loaderVersion,
   instanceId,
+  mods,
   username: usernameProp,
   label = "Запустить Minecraft",
   size = "default" as "default" | "sm" | "lg",
@@ -40,6 +44,7 @@ export const LaunchMinecraftButton = ({
   loader?: string;
   loaderVersion?: string;
   instanceId?: string;
+  mods?: Array<{ id: string; name: string; slug?: string; source?: string }>;
   username?: string;
   label?: string;
   size?: "default" | "sm" | "lg";
@@ -84,6 +89,7 @@ export const LaunchMinecraftButton = ({
         loaderVersion,
         instanceId,
         ramGb: prefs.ramGb,
+        mods,
       });
       if (!res.ok) {
         toast({ title: "Не удалось запустить", description: res.error, variant: "destructive" });
