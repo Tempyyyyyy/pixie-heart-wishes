@@ -12,9 +12,7 @@ const os = require('os');
 //  Pixiestape Launcher — Electron main process
 // ============================================================
 
-const LAUNCHER_URL =
-  process.env.LAUNCHER_URL ||
-  'https://pixie-heart-wishes.lovable.app';
+const LAUNCHER_URL = process.env.LAUNCHER_URL || null;
 
 let mainWindow = null;
 
@@ -37,7 +35,12 @@ function createWindow() {
   });
 
   Menu.setApplicationMenu(null);
-  mainWindow.loadURL(LAUNCHER_URL);
+  
+  if (LAUNCHER_URL) {
+    mainWindow.loadURL(LAUNCHER_URL);
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -45,11 +48,13 @@ function createWindow() {
   });
 
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    const target = new URL(url);
-    const current = new URL(LAUNCHER_URL);
-    if (target.host !== current.host) {
-      event.preventDefault();
-      shell.openExternal(url);
+    if (LAUNCHER_URL) {
+      const target = new URL(url);
+      const current = new URL(LAUNCHER_URL);
+      if (target.host !== current.host) {
+        event.preventDefault();
+        shell.openExternal(url);
+      }
     }
   });
 
@@ -71,7 +76,7 @@ function createWindow() {
           <h1>Не удалось подключиться</h1>
           <p>Проверьте интернет-соединение.</p>
           <p style="opacity:.6;font-size:12px;">${desc}</p>
-          <button onclick="location.href='${LAUNCHER_URL}'">Повторить</button>
+          <button onclick="location.reload()">Повторить</button>
         </div></body></html>`)
     );
   });
