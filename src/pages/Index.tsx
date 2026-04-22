@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Layout } from "@/components/launcher/Layout";
 import { ModDetailDialog } from "@/components/launcher/ModDetailDialog";
 import { searchProjects, type ModrinthHit } from "@/lib/modrinth";
-import { useLaunchPrefs, THEME_PRESETS } from "@/lib/launchSettings";
+import { useTheme, THEME_PRESETS } from "@/lib/launchSettings";
 import heroBg from "@/assets/hero-bg.jpg";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
