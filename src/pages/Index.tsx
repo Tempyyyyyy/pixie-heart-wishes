@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Play, Flame, TrendingUp, Package, Users, ArrowRight, Sparkles, Box, Loader2, Download } from "lucide-react";
+import { Play, Flame, TrendingUp, Package, Users, ArrowRight, Sparkles, Box, Loader2, Download, Newspaper, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,17 @@ import { Layout } from "@/components/launcher/Layout";
 import { ModDetailDialog } from "@/components/launcher/ModDetailDialog";
 import { searchProjects, type ModrinthHit } from "@/lib/modrinth";
 import heroBg from "@/assets/hero-bg.jpg";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+
+type NewsItem = {
+  title: string;
+  link: string;
+  description: string;
+  image: string | null;
+  pubDate: string;
+  source: string;
+};
 
 const stats = [
   { icon: TrendingUp, value: "1 247", label: "Часов в игре" },
@@ -22,12 +33,14 @@ const formatNumber = (n: number) =>
 const Index = () => {
   const [popularPacks, setPopularPacks] = useState<ModrinthHit[]>([]);
   const [popularMods, setPopularMods] = useState<ModrinthHit[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [loadingPacks, setLoadingPacks] = useState(true);
+  const [loadingNews, setLoadingNews] = useState(true);
   const [selected, setSelected] = useState<ModrinthHit | null>(null);
 
   useEffect(() => {
     Promise.all([
-      searchProjects({ projectType: "modpack", sort: "downloads", limit: 8 }),
+      searchProjects({ projectType: "modpack", sort: "downloads", limit: 4 }),
       searchProjects({ projectType: "mod", sort: "downloads", limit: 6 }),
     ])
       .then(([packs, mods]) => {
@@ -36,6 +49,12 @@ const Index = () => {
       })
       .catch(() => {})
       .finally(() => setLoadingPacks(false));
+
+    fetch(`${SUPABASE_URL}/functions/v1/news`)
+      .then(r => r.json())
+      .then(d => setNews((d.items ?? []).slice(0, 6)))
+      .catch(() => setNews([]))
+      .finally(() => setLoadingNews(false));
   }, []);
 
   return (
