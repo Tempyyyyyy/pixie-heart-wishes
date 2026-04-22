@@ -11,10 +11,12 @@ import {
   ImagePlus, Pencil, Share2, Settings, Clock, Download, Layers,
 } from "lucide-react";
 import { searchMods, type ModrinthHit } from "@/lib/modrinth";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AuthDialog } from "@/components/launcher/AuthDialog";
 import { SettingsDialog } from "@/components/launcher/SettingsDialog";
 import { Link } from "react-router-dom";
+import { usePlaytime, formatHours } from "@/lib/launchSettings";
+import { ModrinthBrowser } from "@/components/launcher/ModrinthBrowser";
 
 type Profile = {
   display_name: string | null;
@@ -57,6 +59,9 @@ const ProfilePage = () => {
   const [searchResults, setSearchResults] = useState<ModrinthHit[]>([]);
   const [searching, setSearching] = useState(false);
 
+  const playtime = usePlaytime();
+  const totalMods = instances.reduce((sum, inst) => sum + (inst.mods?.length || 0), 0);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles")
@@ -77,14 +82,7 @@ const ProfilePage = () => {
       .then(({ data }) => setInstances((data as InstanceCard[]) ?? []));
   }, [user]);
 
-  useEffect(() => {
-    if (!pickerOpen || !search.trim()) return;
-    const t = setTimeout(() => {
-      setSearching(true);
-      searchMods({ query: search, limit: 10 }).then(d => setSearchResults(d.hits)).finally(() => setSearching(false));
-    }, 300);
-    return () => clearTimeout(t);
-  }, [search, pickerOpen]);
+  }, [user]);
 
   const onAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -252,8 +250,8 @@ const ProfilePage = () => {
 
       {/* === STATS === */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-fade-in">
-        <StatCard icon={Clock} value={profile?.hours_played ?? 0} label="Часов в игре" />
-        <StatCard icon={Download} value={profile?.mod_installs ?? 0} label="Установок модов" />
+        <StatCard icon={Clock} value={formatHours(playtime.totalSeconds).replace(/[чм]/g, '')} label="Часов в игре" />
+        <StatCard icon={Download} value={totalMods} label="Модов в сборках" />
         <StatCard icon={Layers} value={instances.length} label="Сборок создано" />
         <StatCard icon={Trophy} value={`${profile?.achievements ?? 0}/120`} label="Достижений" />
       </section>
@@ -318,7 +316,7 @@ const ProfilePage = () => {
                     <div className="text-xs text-muted-foreground font-mono">{inst.mc_version} · {inst.loader}</div>
                   </div>
                   <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <span className="text-xs text-muted-foreground">0ч</span>
+                  <span className="text-xs text-muted-foreground">{formatHours(playtime.byInstance[inst.id] || 0)}</span>
                 </Link>
               ))}
             </div>
@@ -328,29 +326,13 @@ const ProfilePage = () => {
 
       {/* Mod picker */}
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Выбери любимый мод</DialogTitle></DialogHeader>
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск: Sodium, JEI, Iris…" autoFocus />
-          <div className="max-h-80 overflow-y-auto space-y-1">
-            {searching && <Loader2 className="w-5 h-5 animate-spin mx-auto my-4 text-primary" />}
-            {searchResults.map(m => (
-              <button
-                key={m.project_id}
-                onClick={() => setFavorite(m)}
-                className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/60 transition-colors text-left"
-              >
-                <div className="w-10 h-10 rounded bg-secondary overflow-hidden flex items-center justify-center shrink-0">
-                  {m.icon_url
-                    ? <img src={m.icon_url} alt={m.title} className="w-full h-full object-cover" />
-                    : <Package className="w-4 h-4 text-muted-foreground" />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-semibold text-sm truncate">{m.title}</div>
-                  <div className="text-xs text-muted-foreground truncate">{m.description}</div>
-                </div>
-              </button>
-            ))}
-          </div>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <ModrinthBrowser
+            projectType="mod"
+            title="Любимый мод"
+            subtitle="Выбери свой любимый мод, который будет отображаться в профиле."
+            onSelectMod={setFavorite}
+          />
         </DialogContent>
       </Dialog>
 

@@ -34,9 +34,10 @@ type Props = {
   title: string;
   subtitle: string;
   initialQuery?: string;
+  onSelectMod?: (mod: ModrinthHit) => void;
 };
 
-export const ModrinthBrowser = ({ projectType, title, subtitle, initialQuery = "" }: Props) => {
+export const ModrinthBrowser = ({ projectType, title, subtitle, initialQuery = "", onSelectMod }: Props) => {
   const [query, setQuery] = useState(initialQuery);
   const [debounced, setDebounced] = useState(initialQuery);
   const [loader, setLoader] = useState<string | null>(null);
@@ -163,7 +164,7 @@ export const ModrinthBrowser = ({ projectType, title, subtitle, initialQuery = "
         {hits.map(mod => (
           <button
             key={mod.project_id}
-            onClick={() => setSelected(mod)}
+            onClick={() => onSelectMod ? onSelectMod(mod) : setSelected(mod)}
             className="group text-left rounded-2xl border border-border bg-card p-4 hover:border-primary/50 hover:-translate-y-1 transition-all"
           >
             <div className="flex gap-3 mb-3">

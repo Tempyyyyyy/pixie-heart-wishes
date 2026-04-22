@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Settings as SettingsIcon, Volume2, Monitor, Cpu, Languages, User } from "lucide-react";
-import { useLaunchPrefs } from "@/lib/launchSettings";
+import { useLaunchPrefs, useTheme, THEME_PRESETS, CustomTheme } from "@/lib/launchSettings";
 
 type Settings = {
   language: "ru" | "en";
@@ -50,6 +50,7 @@ export const useSettings = () => {
 export const SettingsDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) => {
   const { settings, update } = useSettings();
   const { prefs, update: updatePrefs } = useLaunchPrefs();
+  const { theme, update: updateTheme } = useTheme();
   const [nickDraft, setNickDraft] = useState(prefs.username);
 
   useEffect(() => { setNickDraft(prefs.username); }, [prefs.username, open]);
@@ -115,6 +116,24 @@ export const SettingsDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
                 <SelectItem value="2560x1440">2560 × 1440 (QHD)</SelectItem>
               </SelectContent>
             </Select>
+          </Section>
+
+          <Section icon={SettingsIcon} title="Тема оформления" description="Выбери цвет лаунчера (сохраняется локально)">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {THEME_PRESETS.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => updateTheme(t)}
+                  className={`relative h-16 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${
+                    theme.id === t.id ? "border-primary ring-2 ring-primary/50" : "border-border hover:border-primary/50"
+                  }`}
+                  style={{ background: `hsl(${t.background})` }}
+                >
+                  <div className="w-6 h-6 rounded-full" style={{ background: `hsl(${t.primary})` }} />
+                  <span className="text-[10px] font-semibold truncate w-full text-center px-1 text-white">{t.name}</span>
+                </button>
+              ))}
+            </div>
           </Section>
 
           <div className="space-y-3 pt-2 border-t border-border">
