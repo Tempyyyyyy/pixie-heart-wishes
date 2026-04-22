@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Play, Flame, TrendingUp, Package, Users, ArrowRight, Sparkles, Box, Loader2, Download } from "lucide-react";
+import { Play, Flame, TrendingUp, Package, Users, ArrowRight, Sparkles, Box, Loader2, Download, Newspaper, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,17 @@ import { Layout } from "@/components/launcher/Layout";
 import { ModDetailDialog } from "@/components/launcher/ModDetailDialog";
 import { searchProjects, type ModrinthHit } from "@/lib/modrinth";
 import heroBg from "@/assets/hero-bg.jpg";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+
+type NewsItem = {
+  title: string;
+  link: string;
+  description: string;
+  image: string | null;
+  pubDate: string;
+  source: string;
+};
 
 const stats = [
   { icon: TrendingUp, value: "1 247", label: "Часов в игре" },
@@ -22,12 +33,14 @@ const formatNumber = (n: number) =>
 const Index = () => {
   const [popularPacks, setPopularPacks] = useState<ModrinthHit[]>([]);
   const [popularMods, setPopularMods] = useState<ModrinthHit[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [loadingPacks, setLoadingPacks] = useState(true);
+  const [loadingNews, setLoadingNews] = useState(true);
   const [selected, setSelected] = useState<ModrinthHit | null>(null);
 
   useEffect(() => {
     Promise.all([
-      searchProjects({ projectType: "modpack", sort: "downloads", limit: 8 }),
+      searchProjects({ projectType: "modpack", sort: "downloads", limit: 4 }),
       searchProjects({ projectType: "mod", sort: "downloads", limit: 6 }),
     ])
       .then(([packs, mods]) => {
@@ -36,6 +49,12 @@ const Index = () => {
       })
       .catch(() => {})
       .finally(() => setLoadingPacks(false));
+
+    fetch(`${SUPABASE_URL}/functions/v1/news`)
+      .then(r => r.json())
+      .then(d => setNews((d.items ?? []).slice(0, 6)))
+      .catch(() => setNews([]))
+      .finally(() => setLoadingNews(false));
   }, []);
 
   return (
@@ -102,50 +121,118 @@ const Index = () => {
         </div>
       </section>
 
-      {/* POPULAR MODPACKS */}
-      <section className="mt-12">
-        <div className="flex items-end justify-between mb-6">
-          <div>
-            <h2 className="font-display font-bold text-2xl md:text-3xl flex items-center gap-2">
-              <Box className="w-7 h-7 text-primary" />
-              Популярные сборки
-            </h2>
-            <p className="text-muted-foreground text-sm mt-1">Самые скачиваемые modpacks с Modrinth</p>
+      {/* NEWS + COMPACT MODPACKS GRID */}
+      <section className="mt-12 grid lg:grid-cols-[1fr_360px] gap-6">
+        {/* News column */}
+        <div>
+          <div className="flex items-end justify-between mb-5">
+            <div>
+              <h2 className="font-display font-bold text-2xl md:text-3xl flex items-center gap-2">
+                <Newspaper className="w-7 h-7 text-primary" />
+                Новости Minecraft
+              </h2>
+              <p className="text-muted-foreground text-sm mt-1">Свежие истории сообщества и обновления</p>
+            </div>
+            <Link to="/news" className="text-sm font-medium text-primary hover:text-primary-glow transition-colors flex items-center gap-1">
+              Все новости <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
-          <Link to="/modpacks" className="text-sm font-medium text-primary hover:text-primary-glow transition-colors flex items-center gap-1">
-            Все сборки <ArrowRight className="w-4 h-4" />
-          </Link>
+
+          {loadingNews ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : news.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground text-sm rounded-2xl border border-border bg-card">
+              Не удалось загрузить новости.
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-4">
+              {news.map((n, i) => (
+                <a
+                  key={n.link + i}
+                  href={n.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/50 hover:-translate-y-1 transition-all flex flex-col"
+                >
+                  <div className="aspect-video bg-secondary border-b border-border overflow-hidden">
+                    {n.image ? (
+                      <img
+                        src={n.image}
+                        alt={n.title}
+                        loading="lazy"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = heroBg; }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <img src={heroBg} alt="" className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                  <div className="p-4 flex-1 flex flex-col">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="secondary" className="text-[10px]">{n.source}</Badge>
+                      {n.pubDate && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(n.pubDate).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-display font-bold text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors mb-1">
+                      {n.title}
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-auto">{n.description}</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
         </div>
 
-        {loadingPacks ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        {/* Compact modpacks sidebar */}
+        <aside>
+          <div className="flex items-end justify-between mb-5">
+            <div>
+              <h2 className="font-display font-bold text-xl flex items-center gap-2">
+                <Box className="w-5 h-5 text-primary" />
+                Сборки
+              </h2>
+              <p className="text-muted-foreground text-xs mt-1">Топ Modrinth</p>
+            </div>
+            <Link to="/modpacks" className="text-xs font-medium text-primary hover:text-primary-glow transition-colors flex items-center gap-1">
+              Все <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {popularPacks.map(pack => (
-              <button
-                key={pack.project_id}
-                onClick={() => setSelected(pack)}
-                className="group text-left rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/50 hover:-translate-y-1 transition-all"
-              >
-                <div className="aspect-square bg-secondary border-b border-border overflow-hidden flex items-center justify-center">
-                  {pack.icon_url
-                    ? <img src={pack.icon_url} alt={pack.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                    : <Box className="w-12 h-12 text-muted-foreground" />}
-                </div>
-                <div className="p-4">
-                  <div className="font-display font-bold text-base truncate group-hover:text-primary transition-colors mb-1">{pack.title}</div>
-                  <div className="text-xs text-muted-foreground truncate mb-3">{pack.author}</div>
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span className="flex items-center gap-1"><Download className="w-3 h-3" />{formatNumber(pack.downloads)}</span>
-                    <Badge variant="secondary" className="text-[10px]">modpack</Badge>
+
+          {loadingPacks ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {popularPacks.map(pack => (
+                <button
+                  key={pack.project_id}
+                  onClick={() => setSelected(pack)}
+                  className="group text-left rounded-xl border border-border bg-card p-3 hover:border-primary/50 hover:-translate-y-0.5 transition-all flex gap-3"
+                >
+                  <div className="w-12 h-12 rounded-lg bg-secondary border border-border overflow-hidden shrink-0 flex items-center justify-center">
+                    {pack.icon_url
+                      ? <img src={pack.icon_url} alt={pack.title} className="w-full h-full object-cover" loading="lazy" />
+                      : <Box className="w-5 h-5 text-muted-foreground" />}
                   </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-display font-bold text-sm truncate group-hover:text-primary transition-colors">{pack.title}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">{pack.author}</div>
+                    <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
+                      <Download className="w-3 h-3" />{formatNumber(pack.downloads)}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </aside>
       </section>
 
       {/* POPULAR MODS */}
