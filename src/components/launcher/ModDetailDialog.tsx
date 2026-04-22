@@ -86,7 +86,7 @@ export const ModDetailDialog = ({ mod, onOpenChange }: Props) => {
 
       toast({ title: "Сборка создана", description: mod.title });
 
-      // 2. Если в Electron — устанавливаем .mrpack
+      // 2. Если в Electron — устанавливаем .mrpack и сохраняем список модов в БД
       if (window.electronAPI?.isElectron) {
         toast({ title: "Установка модпака…", description: "Смотри логи в правом нижнем углу" });
         const res = await window.electronAPI.installMrpack({
@@ -97,7 +97,15 @@ export const ModDetailDialog = ({ mod, onOpenChange }: Props) => {
         if (!res.ok) {
           toast({ title: "Ошибка установки", description: res.error, variant: "destructive" });
         } else {
-          toast({ title: "Модпак готов!", description: res.message });
+          // ⭐ КРИТИЧНО: сохраняем моды в БД, чтобы они отображались в инстансе
+          if (res.mods && res.mods.length) {
+            await supabase.from("instances").update({
+              mods: res.mods as any,
+              mc_version: res.mc_version || mcVer,
+              loader: res.loader || loader,
+            }).eq("id", inst.id);
+          }
+          toast({ title: "Модпак готов!", description: `${res.mods?.length ?? 0} модов установлено` });
         }
       } else {
         toast({ title: "Сборка сохранена", description: "Открой в десктоп-лаунчере для установки модов" });

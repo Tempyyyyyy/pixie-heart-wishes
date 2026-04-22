@@ -232,6 +232,7 @@ const InstanceDetailPage = () => {
                   version={instance.mc_version}
                   loader={instance.loader}
                   instanceId={instance.id}
+                  mods={instance.mods}
                   label="Играть"
                   variant="hero"
                   size="lg"
