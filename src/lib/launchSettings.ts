@@ -101,6 +101,7 @@ export function setTheme(t: CustomTheme) {
 
 export function applyTheme(t: CustomTheme) {
   const r = document.documentElement;
+  // Основные цвета
   r.style.setProperty("--primary", t.primary);
   r.style.setProperty("--primary-glow", t.primaryGlow);
   r.style.setProperty("--background", t.background);
@@ -110,12 +111,36 @@ export function applyTheme(t: CustomTheme) {
   r.style.setProperty("--border", t.border);
   r.style.setProperty("--ring", t.primary);
   r.style.setProperty("--destructive", t.primary);
+
+  // Цвета сайдбара — теперь они тоже зависят от темы!
+  // Мы используем чуть более темную версию фона темы для сайдбара
+  const [h, s, l] = t.background.split(" ");
+  const lNum = parseInt(l);
+  const sidebarBg = `${h} ${s} ${Math.max(2, lNum - 1)}%`;
+  const sidebarAccent = `${h} ${s} ${Math.min(20, lNum + 5)}%`;
+  const sidebarBorder = `${h} ${s} ${Math.min(25, lNum + 8)}%`;
+
+  r.style.setProperty("--sidebar-background", sidebarBg);
+  r.style.setProperty("--sidebar-foreground", "0 0% 85%");
   r.style.setProperty("--sidebar-primary", t.primary);
+  r.style.setProperty("--sidebar-primary-foreground", "0 0% 100%");
+  r.style.setProperty("--sidebar-accent", sidebarAccent);
+  r.style.setProperty("--sidebar-accent-foreground", "0 0% 96%");
+  r.style.setProperty("--sidebar-border", sidebarBorder);
   r.style.setProperty("--sidebar-ring", t.primary);
-  // gradient
+
+  // Вторичные цвета
+  r.style.setProperty("--secondary", sidebarAccent);
+  r.style.setProperty("--secondary-foreground", "0 0% 96%");
+
+  // Градиенты и тени (обновляем переменные, которые используются в index.css)
   r.style.setProperty(
     "--gradient-primary",
     `linear-gradient(135deg, hsl(${t.primary}), hsl(${t.primaryGlow}))`
+  );
+  r.style.setProperty(
+    "--gradient-hero",
+    `radial-gradient(ellipse at top, hsl(${t.primary} / 0.4), transparent 60%)`
   );
   r.style.setProperty(
     "--shadow-glow",
@@ -129,19 +154,28 @@ export function applyTheme(t: CustomTheme) {
 
 export function useTheme() {
   const [theme, setT] = useState<CustomTheme>(() => getTheme());
+
   useEffect(() => {
     applyTheme(theme);
+
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent<CustomTheme>).detail;
-      if (detail) setT(detail);
+      if (detail) {
+        setT(detail);
+        applyTheme(detail); // <--- Важно! Применяем тему сразу при получении события
+      }
     };
+
     window.addEventListener("pixiestape:theme-changed", onChange);
     return () => window.removeEventListener("pixiestape:theme-changed", onChange);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [theme]);
+
   return {
     theme,
-    update: (t: CustomTheme) => { setT(t); setTheme(t); },
+    update: (t: CustomTheme) => {
+      setT(t);
+      setTheme(t);
+    },
   };
 }
 

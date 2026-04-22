@@ -39,8 +39,9 @@ const Index = () => {
   const [loadingNews, setLoadingNews] = useState(true);
   const [selected, setSelected] = useState<ModrinthHit | null>(null);
 
-  const { prefs } = useLaunchPrefs();
-  const currentThemeName = THEME_PRESETS.find(t => t.id === prefs.theme)?.name.split(" ")[0] || "Crimson";
+  const { theme } = useTheme();
+  const currentThemeName = theme.name.split(" ")[0];
+  const isElectron = !!(window as any).electronAPI?.isElectron;
 
   useEffect(() => {
     Promise.all([
@@ -94,12 +95,21 @@ const Index = () => {
             </p>
 
             <div className="flex flex-wrap gap-3">
-              <Button asChild variant="hero" size="lg" className="rounded-full">
-                <Link to="/instances">
-                  <Play className="w-4 h-4 mr-1 fill-current" />
-                  Открыть мои сборки
-                </Link>
-              </Button>
+              {isElectron ? (
+                <Button asChild variant="hero" size="lg" className="rounded-full">
+                  <Link to="/instances">
+                    <Play className="w-4 h-4 mr-1 fill-current" />
+                    Открыть мои сборки
+                  </Link>
+                </Button>
+              ) : (
+                <Button asChild variant="hero" size="lg" className="rounded-full">
+                  <a href="https://github.com/Tempyyyyyy/pixie-heart-wishes/releases/latest" target="_blank" rel="noopener noreferrer">
+                    <Download className="w-4 h-4 mr-1" />
+                    Скачать лаунчер (.exe)
+                  </a>
+                </Button>
+              )}
               <Button asChild variant="outline" size="lg" className="rounded-full bg-secondary/40 border-border hover:bg-secondary">
                 <Link to="/modpacks">
                   Сборки сообщества
