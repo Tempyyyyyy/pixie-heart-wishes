@@ -10,7 +10,6 @@ const os = require('os');
 
 // ============================================================
 //  Pixiestape Launcher — Electron main process
-//  Поддержка: Vanilla, Fabric, Forge (NeoForge), .mrpack установка
 // ============================================================
 
 const LAUNCHER_URL =
@@ -80,10 +79,6 @@ function createWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-// ============================================================
-//  Helpers
-// ============================================================
-
 const MC_DIR = path.join(app.getPath('userData'), 'minecraft');
 const INSTANCES_DIR = path.join(MC_DIR, 'instances');
 
@@ -126,7 +121,7 @@ async function downloadFile(url, dest) {
 async function downloadFileWithSha1(url, dest, expectedSha1) {
   if (fs.existsSync(dest) && expectedSha1) {
     const hash = crypto.createHash('sha1').update(fs.readFileSync(dest)).digest('hex');
-    if (hash === expectedSha1) return; // already correct
+    if (hash === expectedSha1) return;
   }
   await downloadFile(url, dest);
 }
@@ -164,7 +159,6 @@ function getNativeClassifier(lib) {
   return cls.replace('${arch}', process.arch === 'x64' ? '64' : '32');
 }
 
-// Maven coords ("group:artifact:version") → relative path
 function mavenToPath(coord) {
   const [g, a, v] = coord.split(':');
   return path.join(...g.split('.'), a, v, `${a}-${v}.jar`);
@@ -174,10 +168,6 @@ function mavenToUrl(baseUrl, coord) {
   const [g, a, v] = coord.split(':');
   return `${baseUrl.replace(/\/$/, '')}/${g.split('.').join('/')}/${a}/${v}/${a}-${v}.jar`;
 }
-
-// ============================================================
-//  Vanilla version manifest + libraries
-// ============================================================
 
 let _manifestCache = null;
 async function getMojangManifest() {
@@ -209,7 +199,6 @@ async function ensureVanillaVersion(version) {
     await downloadFileWithSha1(versionJson.downloads.client.url, clientJar, versionJson.downloads.client.sha1);
   }
 
-  // Libraries (with rules and natives)
   const libsDir = path.join(MC_DIR, 'libraries');
   const libPaths = [];
   const nativesDir = path.join(versionDir, 'natives');
@@ -229,7 +218,6 @@ async function ensureVanillaVersion(version) {
       const nat = downloads.classifiers[nativeCls];
       const dest = path.join(libsDir, nat.path);
       await downloadFileWithSha1(nat.url, dest, nat.sha1).catch(e => log('⚠ native ' + e.message));
-      // unpack to natives dir
       try {
         await extractNativesToDir(dest, nativesDir);
       } catch (e) { log('⚠ unpack ' + e.message); }
@@ -239,19 +227,14 @@ async function ensureVanillaVersion(version) {
   return { versionJson, clientJar, libPaths, nativesDir, versionDir };
 }
 
-// Minimal jar (zip) extraction for natives — uses built-in zlib via child unzip if available,
-// otherwise falls back to a tiny pure-JS approach using the `adm-zip`-like routine in Node.
-// To keep zero deps, we use a simple manual ZIP reader.
 async function extractNativesToDir(jarPath, outDir) {
   const buf = fs.readFileSync(jarPath);
-  // EOCD search
   const eocdSig = 0x06054b50;
   let eocd = -1;
   for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
     if (buf.readUInt32LE(i) === eocdSig) { eocd = i; break; }
   }
   if (eocd < 0) throw new Error('Bad ZIP: EOCD not found');
-  const cdSize = buf.readUInt32LE(eocd + 12);
   const cdOff = buf.readUInt32LE(eocd + 16);
   const totalEntries = buf.readUInt16LE(eocd + 10);
   let p = cdOff;
@@ -272,7 +255,6 @@ async function extractNativesToDir(jarPath, outDir) {
     if (name.startsWith('META-INF/')) continue;
     if (!/\.(dll|so|dylib|jnilib)$/i.test(name)) continue;
 
-    // local header
     const localNameLen = buf.readUInt16LE(localOff + 26);
     const localExtraLen = buf.readUInt16LE(localOff + 28);
     const dataStart = localOff + 30 + localNameLen + localExtraLen;
@@ -281,17 +263,10 @@ async function extractNativesToDir(jarPath, outDir) {
     if (method === 0) out = data;
     else if (method === 8) out = zlib.inflateRawSync(data);
     else continue;
-    if (out.length !== uncompSize && uncompSize > 0) {
-      // some zips lie about size; trust the inflated output
-    }
     const outPath = path.join(outDir, path.basename(name));
     fs.writeFileSync(outPath, out);
   }
 }
-
-// ============================================================
-//  Assets (vanilla)
-// ============================================================
 
 async function ensureAssets(versionJson) {
   const assetsDir = path.join(MC_DIR, 'assets');
@@ -313,29 +288,28 @@ async function ensureAssets(versionJson) {
   }
 
   const entries = Object.entries(index.objects || {});
-  log(`⇣ Ассеты: ${entries.length} файлов (звуки, шрифты)…`);
-  let done = 0;
-  for (const [, obj] of entries) {
-    const hash = obj.hash;
-    const sub = hash.slice(0, 2);
-    const dest = path.join(objectsDir, sub, hash);
-    if (!fs.existsSync(dest)) {
-      try { await downloadFile(`https://resources.download.minecraft.net/${sub}/${hash}`, dest); }
-      catch (e) { /* ignore individual asset */ }
+  log(`⇣ Ассеты (звуки/шрифты): ${entries.length} файлов…`);
+  let done = 0, skipped = 0;
+  // Параллелизация по 8 потоков для ускорения
+  const queue = [...entries];
+  async function worker() {
+    while (queue.length) {
+      const [, obj] = queue.shift();
+      const hash = obj.hash;
+      const sub = hash.slice(0, 2);
+      const dest = path.join(objectsDir, sub, hash);
+      if (fs.existsSync(dest)) { skipped++; continue; }
+      try { await downloadFile(`https://resources.download.minecraft.net/${sub}/${hash}`, dest); done++; }
+      catch (e) { /* ignore */ }
+      if ((done + skipped) % 300 === 0) log(`  …${done + skipped}/${entries.length}`);
     }
-    done++;
-    if (done % 200 === 0) log(`  …${done}/${entries.length}`);
   }
-  log(`✓ Ассетов готово: ${done}`);
+  await Promise.all(Array.from({ length: 8 }, () => worker()));
+  log(`✓ Ассеты: новых ${done}, кэш ${skipped}`);
   return assetsDir;
 }
 
-// ============================================================
-//  Fabric loader
-// ============================================================
-
 async function ensureFabric(mcVersion, loaderVersionOpt) {
-  // Get latest loader if not specified
   let loaderVersion = loaderVersionOpt;
   if (!loaderVersion) {
     const loaders = await downloadJson(`https://meta.fabricmc.net/v2/versions/loader/${mcVersion}`);
@@ -344,10 +318,8 @@ async function ensureFabric(mcVersion, loaderVersionOpt) {
   }
   log(`✓ Fabric loader ${loaderVersion}`);
 
-  // Profile JSON tells us mainClass + libraries
   const profile = await downloadJson(`https://meta.fabricmc.net/v2/versions/loader/${mcVersion}/${loaderVersion}/profile/json`);
 
-  // Download libraries (Maven format)
   const libsDir = path.join(MC_DIR, 'libraries');
   const libPaths = [];
   log(`⇣ Библиотеки Fabric (${profile.libraries.length})…`);
@@ -358,7 +330,6 @@ async function ensureFabric(mcVersion, loaderVersionOpt) {
     if (!fs.existsSync(dest)) {
       try { await downloadFile(url, dest); }
       catch (e) {
-        // try Maven Central as fallback
         try { await downloadFile(mavenToUrl('https://repo1.maven.org/maven2/', lib.name), dest); }
         catch (e2) { log('⚠ ' + lib.name + ': ' + e2.message); continue; }
       }
@@ -369,17 +340,12 @@ async function ensureFabric(mcVersion, loaderVersionOpt) {
   return { mainClass: profile.mainClass, libPaths, loaderVersion };
 }
 
-// ============================================================
-//  Forge / NeoForge loader (basic — uses Forge's own promotions)
-// ============================================================
-
 async function ensureForge(mcVersion, loaderVersionOpt) {
-  // Get latest version if not specified
   let forgeVersion = loaderVersionOpt;
   if (!forgeVersion) {
     const promos = await downloadJson('https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json');
     forgeVersion = promos.promos[`${mcVersion}-recommended`] || promos.promos[`${mcVersion}-latest`];
-    if (!forgeVersion) throw new Error(`Forge не имеет рекомендованной версии для ${mcVersion}. Укажите версию вручную.`);
+    if (!forgeVersion) throw new Error(`Forge не имеет рекомендованной версии для ${mcVersion}.`);
   }
   log(`✓ Forge ${forgeVersion}`);
 
@@ -387,23 +353,17 @@ async function ensureForge(mcVersion, loaderVersionOpt) {
   const versionDir = path.join(MC_DIR, 'versions', `forge-${fullVersion}`);
   const versionJsonPath = path.join(versionDir, 'version.json');
 
-  // Forge installer is a JAR — for "client install" we'd need to run installer with java.
-  // For simplicity, we use the "version JSON" approach via an unofficial mirror,
-  // OR fall back to downloading the installer and running it.
   if (!fs.existsSync(versionJsonPath)) {
     log(`⇣ Forge installer (~5 MB)…`);
     const installerUrl = `https://maven.minecraftforge.net/net/minecraftforge/forge/${fullVersion}/forge-${fullVersion}-installer.jar`;
     const installerPath = path.join(versionDir, 'installer.jar');
     await downloadFile(installerUrl, installerPath);
-
-    // Extract version.json from installer
     log(`⇣ Распаковка профиля…`);
     extractFileFromZip(installerPath, 'version.json', versionJsonPath);
   }
 
   const profile = JSON.parse(fs.readFileSync(versionJsonPath, 'utf8'));
 
-  // Forge libs
   const libsDir = path.join(MC_DIR, 'libraries');
   const libPaths = [];
   log(`⇣ Библиотеки Forge (${profile.libraries.length})…`);
@@ -494,7 +454,7 @@ function readZipEntry(entry) {
 }
 
 // ============================================================
-//  .mrpack installer (Modrinth modpack format)
+//  .mrpack installer — теперь возвращает список модов для UI
 // ============================================================
 
 ipcMain.handle('install-mrpack', async (_e, opts) => {
@@ -504,13 +464,14 @@ ipcMain.handle('install-mrpack', async (_e, opts) => {
 
     log(`▶ Установка модпака: ${instanceName}`);
     const instDir = path.join(INSTANCES_DIR, instanceId);
+    const modsDir = path.join(instDir, 'mods');
     fs.mkdirSync(instDir, { recursive: true });
+    fs.mkdirSync(modsDir, { recursive: true });
 
     const mrpackPath = path.join(instDir, 'pack.mrpack');
     log(`⇣ Скачиваю .mrpack…`);
     await downloadFile(url, mrpackPath);
 
-    // Read manifest
     const entries = listZipEntries(mrpackPath);
     const indexEntry = entries.find(e => e.name === 'modrinth.index.json');
     if (!indexEntry) return { ok: false, error: '.mrpack не содержит modrinth.index.json' };
@@ -522,58 +483,115 @@ ipcMain.handle('install-mrpack', async (_e, opts) => {
     let loader = 'fabric';
     let loaderVersion;
     if (index.dependencies['fabric-loader']) {
-      loader = 'fabric';
-      loaderVersion = index.dependencies['fabric-loader'];
+      loader = 'fabric'; loaderVersion = index.dependencies['fabric-loader'];
     } else if (index.dependencies['forge']) {
-      loader = 'forge';
-      loaderVersion = index.dependencies['forge'];
+      loader = 'forge'; loaderVersion = index.dependencies['forge'];
     } else if (index.dependencies['neoforge']) {
-      loader = 'neoforge';
-      loaderVersion = index.dependencies['neoforge'];
+      loader = 'neoforge'; loaderVersion = index.dependencies['neoforge'];
     } else if (index.dependencies['quilt-loader']) {
-      loader = 'quilt';
-      loaderVersion = index.dependencies['quilt-loader'];
+      loader = 'quilt'; loaderVersion = index.dependencies['quilt-loader'];
     }
     log(`✓ Лоадер: ${loader} ${loaderVersion}, MC ${mcVersion}`);
 
-    // Скачиваем все файлы из index.files в instance dir
-    const filesDir = instDir;
     log(`⇣ Скачиваю ${index.files.length} файлов мода…`);
+    const installedMods = [];
     let done = 0;
     for (const f of index.files) {
-      // Берём первый downloads url, по политике mrpack — это всегда CDN modrinth/curseforge/etc
-      const dest = path.join(filesDir, f.path);
+      const dest = path.join(instDir, f.path);
       try {
         await downloadFileWithSha1(f.downloads[0], dest, f.hashes && f.hashes.sha1);
         done++;
+        // Если это файл из mods/ — добавляем в список модов для БД
+        if (f.path.startsWith('mods/')) {
+          const fname = path.basename(f.path);
+          installedMods.push({
+            id: `mrpack:${fname}`,
+            slug: fname.replace(/\.jar$/i, ''),
+            name: fname.replace(/\.jar$/i, '').replace(/[-_]/g, ' '),
+            icon: null,
+            file: fname,
+            source: 'mrpack',
+          });
+        }
       } catch (e) {
         log(`⚠ ${f.path}: ${e.message}`);
       }
     }
-    log(`✓ Файлов установлено: ${done}/${index.files.length}`);
+    log(`✓ Файлов установлено: ${done}/${index.files.length}, модов: ${installedMods.length}`);
 
-    // Распаковываем overrides/ и client-overrides/ в instance dir
+    // overrides → копируем в инстанс. Для mods/* добавляем в список тоже.
     for (const e of entries) {
       if (e.name.startsWith('overrides/') || e.name.startsWith('client-overrides/')) {
         if (e.name.endsWith('/')) continue;
         const rel = e.name.replace(/^(client-)?overrides\//, '');
-        const out = path.join(filesDir, rel);
+        const out = path.join(instDir, rel);
         try {
           fs.mkdirSync(path.dirname(out), { recursive: true });
           fs.writeFileSync(out, readZipEntry(e));
+          if (rel.startsWith('mods/') && rel.endsWith('.jar')) {
+            const fname = path.basename(rel);
+            if (!installedMods.find(m => m.file === fname)) {
+              installedMods.push({
+                id: `override:${fname}`,
+                slug: fname.replace(/\.jar$/i, ''),
+                name: fname.replace(/\.jar$/i, '').replace(/[-_]/g, ' '),
+                icon: null,
+                file: fname,
+                source: 'override',
+              });
+            }
+          }
         } catch (err) { log('⚠ override ' + rel + ': ' + err.message); }
       }
     }
 
     return {
       ok: true,
-      message: `Установлено ${done} модов в инстанс`,
+      message: `Установлено ${installedMods.length} модов`,
       mc_version: mcVersion,
       loader,
       loader_version: loaderVersion,
+      mods: installedMods,
     };
   } catch (e) {
     log('✖ ' + e.message);
+    return { ok: false, error: e.message };
+  }
+});
+
+// ============================================================
+//  Скачать конкретный мод из Modrinth для инстанса
+// ============================================================
+
+ipcMain.handle('download-mod', async (_e, opts) => {
+  try {
+    const { instanceId, projectId, slug, mcVersion, loader } = opts;
+    if (!instanceId || !projectId) return { ok: false, error: 'Нет instanceId/projectId' };
+    const modsDir = path.join(INSTANCES_DIR, instanceId, 'mods');
+    fs.mkdirSync(modsDir, { recursive: true });
+
+    // Получаем версии мода
+    const versions = await downloadJson(
+      `https://api.modrinth.com/v2/project/${projectId}/version` +
+      (mcVersion ? `?game_versions=["${mcVersion}"]` : '')
+    );
+    // Фильтруем по лоадеру
+    let matching = versions;
+    if (loader) {
+      matching = versions.filter(v => v.loaders.includes(loader));
+      if (!matching.length) matching = versions;
+    }
+    if (!matching.length) return { ok: false, error: 'Нет совместимых версий' };
+    const v = matching[0];
+    const file = v.files.find(f => f.primary) || v.files[0];
+    if (!file) return { ok: false, error: 'Нет файла' };
+
+    const dest = path.join(modsDir, file.filename);
+    log(`⇣ ${slug || projectId}: ${file.filename}`);
+    await downloadFileWithSha1(file.url, dest, file.hashes && file.hashes.sha1);
+    return { ok: true, filename: file.filename, version: v.version_number };
+  } catch (e) {
+    log('✖ download-mod: ' + e.message);
     return { ok: false, error: e.message };
   }
 });
@@ -588,7 +606,8 @@ ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
   const loader = (opts.loader || 'vanilla').toLowerCase();
   const loaderVersion = opts.loaderVersion;
   const instanceId = opts.instanceId;
-  const ramGb = Math.max(1, Math.min(32, parseInt(opts.ramGb) || 4));
+  const ramGb = Math.max(1, Math.min(32, parseInt(opts.ramGb, 10) || 4));
+  const startedAt = Date.now();
 
   try {
     log(`▶ ${username} → ${loader} ${mcVersion}${loaderVersion ? ' (' + loaderVersion + ')' : ''}, RAM ${ramGb} ГБ`);
@@ -601,54 +620,78 @@ ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
     }
     log(`✓ Java: ${javaVer}`);
 
-    // 1. Vanilla (всегда нужно)
     const vanilla = await ensureVanillaVersion(mcVersion);
-
-    // 2. Assets
     const assetsDir = await ensureAssets(vanilla.versionJson);
 
-    // 3. Loader
     let mainClass = vanilla.versionJson.mainClass;
     let extraLibs = [];
-    let resolvedLoaderVer = loaderVersion;
 
     if (loader === 'fabric' || loader === 'quilt') {
       const f = await ensureFabric(mcVersion, loaderVersion);
       mainClass = f.mainClass;
       extraLibs = f.libPaths;
-      resolvedLoaderVer = f.loaderVersion;
     } else if (loader === 'forge' || loader === 'neoforge') {
       try {
         const f = await ensureForge(mcVersion, loaderVersion);
         mainClass = f.mainClass;
         extraLibs = f.libPaths;
-        resolvedLoaderVer = f.loaderVersion;
       } catch (e) {
         log(`⚠ Forge не установлен: ${e.message}. Запускаю vanilla.`);
       }
     }
 
-    // 4. Build classpath
     const sep = process.platform === 'win32' ? ';' : ':';
     const allLibs = [...extraLibs, ...vanilla.libPaths, vanilla.clientJar];
     const uniqLibs = Array.from(new Set(allLibs));
     const classpath = uniqLibs.join(sep);
 
-    // 5. Game directory: per-instance if specified
     const gameDir = instanceId ? path.join(INSTANCES_DIR, instanceId) : MC_DIR;
     fs.mkdirSync(gameDir, { recursive: true });
+    fs.mkdirSync(path.join(gameDir, 'mods'), { recursive: true });
 
-    // 6. Args
+    // Дозагружаем моды из переданного списка (если есть и это не mrpack-файлы)
+    if (Array.isArray(opts.mods) && opts.mods.length) {
+      log(`⇣ Проверка модов сборки (${opts.mods.length})…`);
+      for (const m of opts.mods) {
+        if (m.source === 'mrpack' || m.source === 'override') continue; // уже на диске
+        if (!m.id || m.id.startsWith('mrpack:') || m.id.startsWith('override:')) continue;
+        try {
+          const versions = await downloadJson(
+            `https://api.modrinth.com/v2/project/${m.id}/version?game_versions=["${mcVersion}"]`
+          );
+          let matching = versions.filter(v => v.loaders.includes(loader));
+          if (!matching.length) matching = versions;
+          if (!matching.length) { log(`⚠ ${m.name}: нет совместимых версий`); continue; }
+          const v = matching[0];
+          const file = v.files.find(f => f.primary) || v.files[0];
+          if (!file) continue;
+          const dest = path.join(gameDir, 'mods', file.filename);
+          if (!fs.existsSync(dest)) {
+            await downloadFileWithSha1(file.url, dest, file.hashes && file.hashes.sha1);
+            log(`  + ${file.filename}`);
+          }
+        } catch (err) { log(`⚠ ${m.name}: ${err.message}`); }
+      }
+    }
+
+    // Считаем установленные моды (для UI / статистики)
+    let modsCount = 0;
+    try {
+      modsCount = fs.readdirSync(path.join(gameDir, 'mods')).filter(f => f.endsWith('.jar')).length;
+    } catch {}
+    log(`✓ Модов в папке mods: ${modsCount}`);
+
     const javaArgs = [
       `-Xmx${ramGb}G`,
-      `-Xms512M`,
+      `-Xms${Math.min(ramGb, 1)}G`,
       `-Djava.library.path=${vanilla.nativesDir}`,
+      `-Dorg.lwjgl.librarypath=${vanilla.nativesDir}`,
       `-Dminecraft.launcher.brand=Pixiestape`,
       `-Dminecraft.launcher.version=1.0`,
       '-cp', classpath,
       mainClass,
       '--username', username,
-      '--version', `Pixiestape ${loader} ${mcVersion}`,
+      '--version', `Pixiestape-${loader}-${mcVersion}`,
       '--gameDir', gameDir,
       '--assetsDir', assetsDir,
       '--assetIndex', (vanilla.versionJson.assetIndex && vanilla.versionJson.assetIndex.id) || mcVersion,
@@ -658,6 +701,8 @@ ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
       '--xuid', '0',
       '--userType', 'legacy',
       '--versionType', 'release',
+      '--width', '1280',
+      '--height', '720',
     ];
 
     log(`▶ Запускаю Java (libs: ${uniqLibs.length}, mainClass: ${mainClass.split('.').pop()})`);
@@ -665,19 +710,25 @@ ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
 
     child.stdout.on('data', (d) => log(d.toString().trim()));
     child.stderr.on('data', (d) => log(d.toString().trim()));
-    child.on('exit', (code) => log(`◼ Minecraft завершился (код ${code})`));
+    child.on('exit', (code) => {
+      const seconds = Math.round((Date.now() - startedAt) / 1000);
+      log(`◼ Minecraft завершился (код ${code}), сессия: ${seconds}с`);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('mc-session-ended', {
+          instanceId: instanceId || null,
+          seconds,
+          modsCount,
+        });
+      }
+    });
     child.on('error', (err) => log('✖ ' + err.message));
 
-    return { ok: true, message: `Minecraft ${mcVersion} (${loader}) стартует…` };
+    return { ok: true, message: `Minecraft ${mcVersion} (${loader}) стартует…`, modsCount };
   } catch (e) {
     log('✖ Ошибка: ' + e.message);
     return { ok: false, error: e.message };
   }
 });
-
-// ============================================================
-//  App lifecycle
-// ============================================================
 
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
