@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Layout } from "@/components/launcher/Layout";
 import { ModDetailDialog } from "@/components/launcher/ModDetailDialog";
 import { searchProjects, type ModrinthHit } from "@/lib/modrinth";
+import { useLaunchPrefs, THEME_PRESETS } from "@/lib/launchSettings";
 import heroBg from "@/assets/hero-bg.jpg";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -37,6 +38,9 @@ const Index = () => {
   const [loadingPacks, setLoadingPacks] = useState(true);
   const [loadingNews, setLoadingNews] = useState(true);
   const [selected, setSelected] = useState<ModrinthHit | null>(null);
+
+  const { prefs } = useLaunchPrefs();
+  const currentThemeName = THEME_PRESETS.find(t => t.id === prefs.theme)?.name.split(" ")[0] || "Crimson";
 
   useEffect(() => {
     Promise.all([
@@ -75,7 +79,7 @@ const Index = () => {
           <div className="flex flex-col justify-center max-w-2xl">
             <div className="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full bg-primary/15 border border-primary/40 text-xs font-medium text-primary mb-6">
               <Flame className="w-3.5 h-3.5" />
-              Сезон Crimson · обновление 0.3
+              Тема {currentThemeName} · обновление 0.3
             </div>
 
             <h1 className="font-display font-bold text-4xl md:text-6xl lg:text-7xl leading-[1.05] mb-6">
@@ -86,7 +90,7 @@ const Index = () => {
 
             <p className="text-base md:text-lg text-muted-foreground mb-8 max-w-xl">
               Тысячи модов, готовые сборки, шейдеры и текстур-паки прямо из Modrinth.
-              Серверы, новости и профиль в стиле Steam — всё в одном тёмно-красном интерфейсе.
+              Серверы, новости и профиль в стиле Steam — всё в одном кастомном интерфейсе.
             </p>
 
             <div className="flex flex-wrap gap-3">
