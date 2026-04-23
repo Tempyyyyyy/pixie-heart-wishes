@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Loader2, ImagePlus, Pencil, Trash2, Save, Plus, Package, Search,
-  Replace, X, Users, Download as DownloadIcon, Calendar, FileBox, Camera,
+  Replace, X, Users, Download as DownloadIcon, Calendar, FileBox, Camera, Upload,
 } from "lucide-react";
 import { searchMods, type ModrinthHit } from "@/lib/modrinth";
 import { LaunchMinecraftButton } from "@/components/launcher/LaunchMinecraftButton";
@@ -51,6 +51,9 @@ const InstanceDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+  const modFileRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Edit dialog
   const [editing, setEditing] = useState(false);
@@ -85,6 +88,20 @@ const InstanceDetailPage = () => {
     }, 300);
     return () => clearTimeout(t);
   }, [search, pickerOpen, instance?.loader]);
+
+  useEffect(() => {
+    const electron = (window as any).electronAPI;
+    if (!electron) return;
+    return electron.onLaunchLog((msg: string) => {
+      setLogs(prev => [...prev.slice(-200), msg]);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [logs]);
 
   const isOwner = user && instance && user.id === instance.user_id;
 
@@ -167,6 +184,31 @@ const InstanceDetailPage = () => {
   const removeMod = async (modId: string) => {
     if (!instance) return;
     await updateMods(instance.mods.filter(m => m.id !== modId));
+  };
+
+  const onUploadMod = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !instance) return;
+    const electron = (window as any).electronAPI;
+    if (!electron) return toast({ title: "Только в десктопной версии" });
+
+    // В Electron мы получаем путь к файлу через input.files[0].path (нестандартно)
+    const filePath = (file as any).path;
+    if (!filePath) return toast({ title: "Не удалось получить путь к файлу" });
+
+    const res = await electron.uploadModFile({ instanceId: instance.id, filePath });
+    if (!res.ok) return toast({ title: "Ошибка", description: res.error, variant: "destructive" });
+
+    const newMod: ModInInstance = {
+      id: `local:${Date.now()}`,
+      name: res.name,
+      icon: null,
+      slug: res.filename
+    };
+
+    await updateMods([...instance.mods, newMod]);
+    toast({ title: "Мод загружен", description: res.name });
+    if (modFileRef.current) modFileRef.current.value = "";
   };
 
   if (authLoading || loading) {
@@ -281,9 +323,6 @@ const InstanceDetailPage = () => {
             <TabsTrigger value="content" className="rounded-lg data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
               Контент
             </TabsTrigger>
-            <TabsTrigger value="files" className="rounded-lg data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-              Файлы
-            </TabsTrigger>
             <TabsTrigger value="logs" className="rounded-lg data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
               Логи
             </TabsTrigger>
@@ -310,10 +349,11 @@ const InstanceDetailPage = () => {
                     <Plus className="w-4 h-4 mr-2" />
                     Обзор контента
                   </Button>
-                  <Button variant="outline" className="flex-1 md:flex-none rounded-xl">
-                    <FileBox className="w-4 h-4 mr-2" />
-                    Загрузить файлы
+                  <Button variant="outline" className="flex-1 md:flex-none rounded-xl" onClick={() => modFileRef.current?.click()}>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Свой мод (.jar)
                   </Button>
+                  <input ref={modFileRef} type="file" accept=".jar" className="hidden" onChange={onUploadMod} />
                 </>
               )}
             </div>
@@ -379,23 +419,38 @@ const InstanceDetailPage = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="files" className="mt-4 focus-visible:outline-none">
-          <div className="rounded-2xl border border-border bg-card/30 p-12 text-center">
-            <FileBox className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30" />
-            <h3 className="font-display font-bold text-lg mb-2">Просмотр файлов</h3>
-            <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-              Здесь вы сможете управлять файлами сборки напрямую. Функция в разработке.
-            </p>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="logs" className="mt-4 focus-visible:outline-none">
-          <div className="rounded-2xl border border-border bg-card/30 p-12 text-center">
-            <Calendar className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30" />
-            <h3 className="font-display font-bold text-lg mb-2">Логи запуска</h3>
-            <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-              История запусков и ошибки игры будут отображаться здесь.
-            </p>
+        <TabsContent value="logs" className="mt-4 focus-visible:outline-none h-[500px]">
+          <div className="rounded-2xl border border-border bg-black/40 backdrop-blur-md p-4 h-full flex flex-col">
+            <div className="flex items-center justify-between mb-3 px-1">
+               <div className="flex items-center gap-2 text-sm font-medium">
+                 <Calendar className="w-4 h-4 text-primary" />
+                 Логи запуска
+               </div>
+               <Button variant="ghost" size="sm" onClick={() => setLogs([])} className="h-7 text-xs text-muted-foreground hover:text-foreground">
+                 Очистить
+               </Button>
+            </div>
+            
+            <div 
+              ref={scrollRef}
+              className="flex-1 overflow-y-auto font-mono text-[13px] leading-relaxed p-4 rounded-xl bg-black/20 border border-border/50 scrollbar-thin scrollbar-thumb-primary/20"
+            >
+              {logs.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground/40 opacity-50">
+                   <Calendar className="w-12 h-12 mb-4" />
+                   <p>История запусков и ошибки игры будут отображаться здесь.</p>
+                </div>
+              ) : (
+                logs.map((log, i) => (
+                  <div key={i} className="mb-1 last:mb-0 break-words">
+                    <span className="opacity-30 mr-3 select-none">{i + 1}</span>
+                    <span className={log.includes('ERROR') || log.includes('Exception') ? 'text-red-400' : log.includes('WARN') ? 'text-yellow-400' : ''}>
+                      {log}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </TabsContent>
       </Tabs>

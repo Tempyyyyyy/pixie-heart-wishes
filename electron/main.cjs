@@ -602,6 +602,35 @@ ipcMain.handle('download-mod', async (_e, opts) => {
 });
 
 // ============================================================
+//  Загрузить свой файл мода в инстанс
+// ============================================================
+
+ipcMain.handle('upload-mod-file', async (_e, opts) => {
+  try {
+    const { instanceId, filePath } = opts;
+    if (!instanceId || !filePath) return { ok: false, error: 'Нет instanceId/filePath' };
+    
+    const modsDir = path.join(INSTANCES_DIR, instanceId, 'mods');
+    fs.mkdirSync(modsDir, { recursive: true });
+    
+    const fileName = path.basename(filePath);
+    const dest = path.join(modsDir, fileName);
+    
+    log(`⇣ Загрузка локального мода: ${fileName}`);
+    fs.copyFileSync(filePath, dest);
+    
+    return { 
+      ok: true, 
+      filename: fileName,
+      name: fileName.replace(/\.jar$/i, '').replace(/[-_]/g, ' ')
+    };
+  } catch (e) {
+    log('✖ upload-mod-file: ' + e.message);
+    return { ok: false, error: e.message };
+  }
+});
+
+// ============================================================
 //  LAUNCH
 // ============================================================
 

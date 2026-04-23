@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   launchMinecraft: (opts) => ipcRenderer.invoke('launch-minecraft', opts),
   installMrpack: (opts) => ipcRenderer.invoke('install-mrpack', opts),
   downloadMod: (opts) => ipcRenderer.invoke('download-mod', opts),
+  uploadModFile: (opts) => ipcRenderer.invoke('upload-mod-file', opts),
   onLaunchLog: (cb) => {
     const listener = (_e, msg) => cb(msg);
     ipcRenderer.on('launch-log', listener);
