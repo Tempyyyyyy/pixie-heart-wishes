@@ -16,6 +16,7 @@ import Profile from "./pages/Profile.tsx";
 import News from "./pages/News.tsx";
 import Servers from "./pages/Servers.tsx";
 import Skins from "./pages/Skins.tsx";
+import Account from "./pages/Account.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const AnimatedRoutes = () => {
         <Route path="/instances" element={<Instances />} />
         <Route path="/instances/:id" element={<InstanceDetail />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/account" element={<Account />} />
         <Route path="/news" element={<News />} />
         <Route path="/servers" element={<Servers />} />
         <Route path="/skins" element={<Skins />} />

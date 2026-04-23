@@ -89,6 +89,39 @@ export type Database = {
         }
         Relationships: []
       }
+      minecraft_accounts: {
+        Row: {
+          account_type: string
+          created_at: string
+          id: string
+          is_active: boolean
+          updated_at: string
+          user_id: string
+          username: string
+          uuid: string | null
+        }
+        Insert: {
+          account_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id: string
+          username: string
+          uuid?: string | null
+        }
+        Update: {
+          account_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id?: string
+          username?: string
+          uuid?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           achievements: number

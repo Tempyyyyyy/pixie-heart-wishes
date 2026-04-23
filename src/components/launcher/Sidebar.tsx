@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, Package, Layers, User, Newspaper, Server, Shirt, Flame, Box, Palette, Sparkles, Plug, ChevronDown, Gamepad2 } from "lucide-react";
+import { Home, Package, Layers, User, Newspaper, Server, Shirt, Flame, Box, Palette, Sparkles, Plug, ChevronDown, Gamepad2, UserCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const modsChildren = [
@@ -22,6 +22,7 @@ const bottomItems = [
   { to: "/servers", label: "Серверы", icon: Server },
   { to: "/skins", label: "Скины", icon: Shirt },
   { to: "/news", label: "Новости", icon: Newspaper },
+  { to: "/account", label: "Аккаунт", icon: UserCircle2 },
   { to: "/profile", label: "Профиль", icon: User },
 ];
 
