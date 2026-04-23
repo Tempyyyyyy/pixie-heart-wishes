@@ -251,17 +251,17 @@ const Index = () => {
       </section>
 
       {/* POPULAR MODS */}
-      <section className="mt-12">
-        <div className="flex items-end justify-between mb-6">
-          <div>
-            <h2 className="font-display font-bold text-2xl md:text-3xl flex items-center gap-2">
-              <Sparkles className="w-7 h-7 text-primary" />
+      <section className="mt-8 md:mt-12">
+        <div className="flex items-end justify-between mb-4 md:mb-6 gap-3">
+          <div className="min-w-0">
+            <h2 className="font-display font-bold text-xl md:text-3xl flex items-center gap-2">
+              <Sparkles className="w-5 h-5 md:w-7 md:h-7 text-primary shrink-0" />
               Топ модов
             </h2>
-            <p className="text-muted-foreground text-sm mt-1">Самые скачиваемые моды сообщества</p>
+            <p className="text-muted-foreground text-xs md:text-sm mt-1 hidden sm:block">Самые скачиваемые моды сообщества</p>
           </div>
-          <Link to="/library" className="text-sm font-medium text-primary hover:text-primary-glow transition-colors flex items-center gap-1">
-            Все моды <ArrowRight className="w-4 h-4" />
+          <Link to="/library" className="text-xs md:text-sm font-medium text-primary hover:text-primary-glow transition-colors flex items-center gap-1 shrink-0">
+            Все <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
           </Link>
         </div>
 
