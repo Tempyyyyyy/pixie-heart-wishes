@@ -17,6 +17,7 @@ import { SettingsDialog } from "@/components/launcher/SettingsDialog";
 import { Link } from "react-router-dom";
 import { usePlaytime, formatHours } from "@/lib/launchSettings";
 import { ModrinthBrowser } from "@/components/launcher/ModrinthBrowser";
+import { FriendsPanel } from "@/components/launcher/FriendsPanel";
 
 type Profile = {
   display_name: string | null;
