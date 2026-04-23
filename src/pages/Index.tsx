@@ -137,19 +137,19 @@ const Index = () => {
       </section>
 
       {/* NEWS + COMPACT MODPACKS GRID */}
-      <section className="mt-12 grid lg:grid-cols-[1fr_360px] gap-6">
+      <section className="mt-8 md:mt-12 grid lg:grid-cols-[1fr_360px] gap-6">
         {/* News column */}
         <div>
-          <div className="flex items-end justify-between mb-5">
-            <div>
-              <h2 className="font-display font-bold text-2xl md:text-3xl flex items-center gap-2">
-                <Newspaper className="w-7 h-7 text-primary" />
-                Новости Minecraft
+          <div className="flex items-end justify-between mb-4 md:mb-5 gap-3">
+            <div className="min-w-0">
+              <h2 className="font-display font-bold text-xl md:text-3xl flex items-center gap-2">
+                <Newspaper className="w-5 h-5 md:w-7 md:h-7 text-primary shrink-0" />
+                <span className="truncate">Новости Minecraft</span>
               </h2>
-              <p className="text-muted-foreground text-sm mt-1">Свежие истории сообщества и обновления</p>
+              <p className="text-muted-foreground text-xs md:text-sm mt-1 hidden sm:block">Свежие истории сообщества и обновления</p>
             </div>
-            <Link to="/news" className="text-sm font-medium text-primary hover:text-primary-glow transition-colors flex items-center gap-1">
-              Все новости <ArrowRight className="w-4 h-4" />
+            <Link to="/news" className="text-xs md:text-sm font-medium text-primary hover:text-primary-glow transition-colors flex items-center gap-1 shrink-0">
+              Все <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
             </Link>
           </div>
 
