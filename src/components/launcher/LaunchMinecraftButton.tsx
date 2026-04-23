@@ -10,6 +10,8 @@ declare global {
       isElectron: boolean;
       launchMinecraft: (opts: {
         username?: string;
+        uuid?: string;
+        accountType?: "offline" | "microsoft";
         version?: string;
         loader?: string;
         loaderVersion?: string;
@@ -86,6 +88,8 @@ export const LaunchMinecraftButton = ({
     try {
       const res = await window.electronAPI.launchMinecraft({
         username,
+        uuid: prefs.uuid,
+        accountType: prefs.accountType,
         version,
         loader,
         loaderVersion,

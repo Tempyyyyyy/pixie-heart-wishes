@@ -5,6 +5,8 @@ const THEME_KEY = "pixiestape:theme";
 export type LaunchPrefs = {
   username: string;
   ramGb: number;
+  uuid?: string;
+  accountType?: "offline" | "microsoft";
 };
 
 const DEFAULTS: LaunchPrefs = {
@@ -23,9 +25,11 @@ export function getLaunchPrefs(): LaunchPrefs {
 export function setLaunchPrefs(patch: Partial<LaunchPrefs>) {
   const next = { ...getLaunchPrefs(), ...patch };
   next.username = (next.username || "Player")
-    .replace(/[^A-Za-z0-9_]/g, "")
-    .slice(0, 16) || "Player";
+    .replace(/[^A-Za-z0-9_ ]/g, "") // Разрешаем пробелы для MS аккаунтов
+    .slice(0, 32) || "Player";
   next.ramGb = Math.max(1, Math.min(32, Math.round(next.ramGb || 4)));
+  next.uuid = next.uuid || "00000000000000000000000000000000";
+  next.accountType = next.accountType || "offline";
   localStorage.setItem(KEY, JSON.stringify(next));
   window.dispatchEvent(new CustomEvent("pixiestape:launch-changed", { detail: next }));
   return next;

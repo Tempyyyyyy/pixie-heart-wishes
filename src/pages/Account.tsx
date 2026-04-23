@@ -95,8 +95,42 @@ const AccountPage = () => {
     await supabase.from("minecraft_accounts").update({ is_active: false }).eq("user_id", user.id).eq("is_active", true);
     const { error } = await supabase.from("minecraft_accounts").update({ is_active: true }).eq("id", acc.id);
     if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
-    updatePrefs({ username: acc.username });
+    updatePrefs({ username: acc.username, uuid: acc.uuid ?? undefined, accountType: acc.account_type });
     toast({ title: "Активный аккаунт", description: acc.username });
+    load();
+  };
+
+  const addMicrosoft = async () => {
+    if (!user) return;
+    const electron = (window as any).electronAPI;
+    if (!electron) return toast({ title: "Только в десктопной версии" });
+
+    setAdding(true);
+    const res = await electron.loginMicrosoft();
+    if (!res.ok) {
+      setAdding(false);
+      return toast({ title: "Ошибка входа", description: res.error, variant: "destructive" });
+    }
+
+    if (accounts.some(a => a.uuid === res.uuid)) {
+      setAdding(false);
+      return toast({ title: "Этот аккаунт уже добавлен" });
+    }
+
+    const isFirst = accounts.length === 0;
+    const { error } = await supabase.from("minecraft_accounts").insert({
+      user_id: user.id,
+      username: res.username,
+      account_type: "microsoft",
+      uuid: res.uuid,
+      is_active: isFirst,
+    });
+
+    setAdding(false);
+    if (error) return toast({ title: "Ошибка БД", description: error.message, variant: "destructive" });
+    
+    if (isFirst) updatePrefs({ username: res.username, uuid: res.uuid, accountType: "microsoft" });
+    toast({ title: "Аккаунт добавлен", description: res.username });
     load();
   };
 
@@ -173,17 +207,21 @@ const AccountPage = () => {
           </div>
         </button>
 
-        {/* Microsoft card (disabled) */}
-        <div className="rounded-2xl border border-border bg-card/50 p-6 opacity-70 relative">
+        {/* Microsoft card */}
+        <button
+          onClick={addMicrosoft}
+          disabled={adding}
+          className="text-left rounded-2xl border border-border bg-card p-6 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all group"
+        >
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-              <Sparkles className="w-6 h-6 text-muted-foreground" />
+            <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center shrink-0 group-hover:bg-primary/25 transition-colors">
+              <Sparkles className="w-6 h-6 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-display font-bold text-lg">Microsoft аккаунт</h3>
-                <span className="text-[10px] font-semibold uppercase tracking-wider bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
-                  Скоро
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                  Официально
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -191,7 +229,7 @@ const AccountPage = () => {
               </p>
             </div>
           </div>
-        </div>
+        </button>
       </section>
 
       {/* ACCOUNTS LIST */}

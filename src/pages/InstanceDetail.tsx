@@ -65,6 +65,7 @@ const InstanceDetailPage = () => {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<ModrinthHit[]>([]);
   const [searching, setSearching] = useState(false);
+  const [browserType, setBrowserType] = useState<ProjectType>("mod");
 
   const load = async () => {
     if (!id) return;
@@ -207,7 +208,7 @@ const InstanceDetailPage = () => {
     };
 
     await updateMods([...instance.mods, newMod]);
-    toast({ title: "Мод загружен", description: res.name });
+    toast({ title: "Файл загружен", description: `${res.name} (папка ${res.folder})` });
     if (modFileRef.current) modFileRef.current.value = "";
   };
 
@@ -345,15 +346,15 @@ const InstanceDetailPage = () => {
             <div className="flex items-center gap-3 w-full md:w-auto">
               {isOwner && (
                 <>
-                  <Button variant="hero" onClick={() => { setReplaceModId(null); setPickerOpen(true); }} className="flex-1 md:flex-none rounded-xl">
+                  <Button variant="hero" onClick={() => { setReplaceModId(null); setBrowserType("mod"); setPickerOpen(true); }} className="flex-1 md:flex-none rounded-xl">
                     <Plus className="w-4 h-4 mr-2" />
                     Обзор контента
                   </Button>
                   <Button variant="outline" className="flex-1 md:flex-none rounded-xl" onClick={() => modFileRef.current?.click()}>
                     <Upload className="w-4 h-4 mr-2" />
-                    Свой мод (.jar)
+                    Загрузить свой файл
                   </Button>
-                  <input ref={modFileRef} type="file" accept=".jar" className="hidden" onChange={onUploadMod} />
+                  <input ref={modFileRef} type="file" accept=".jar,.zip" className="hidden" onChange={onUploadMod} />
                 </>
               )}
             </div>
@@ -488,27 +489,30 @@ const InstanceDetailPage = () => {
 
       {/* Mod picker */}
       <Dialog open={pickerOpen} onOpenChange={(v) => { if (!v) { setPickerOpen(false); setReplaceModId(null); setSearch(""); } }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{replaceModId ? "Заменить мод" : "Добавить мод из Modrinth"}</DialogTitle></DialogHeader>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Sodium, JEI, Iris…" autoFocus className="pl-9" />
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center gap-4 mb-4">
+            <h2 className="font-display font-bold text-xl">{replaceModId ? "Заменить" : "Добавить контент"}</h2>
+            <div className="flex gap-1 ml-auto">
+              {(["mod", "resourcepack", "shader"] as const).map(t => (
+                <Button 
+                  key={t}
+                  size="sm" 
+                  variant={browserType === t ? "hero" : "outline"}
+                  onClick={() => setBrowserType(t)}
+                  className="rounded-full text-[10px] h-7 px-3 uppercase tracking-wider"
+                >
+                  {t === "mod" ? "Моды" : t === "resourcepack" ? "Ресурспаки" : "Шейдеры"}
+                </Button>
+              ))}
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">Фильтр по лоадеру: <span className="font-mono text-foreground">{instance.loader}</span></p>
-          <div className="max-h-80 overflow-y-auto space-y-1">
-            {searching && <Loader2 className="w-5 h-5 animate-spin mx-auto my-4 text-primary" />}
-            {results.map(m => (
-              <button key={m.project_id} onClick={() => addMod(m)} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/60 transition-colors text-left">
-                <div className="w-10 h-10 rounded bg-secondary overflow-hidden flex items-center justify-center shrink-0">
-                  {m.icon_url ? <img src={m.icon_url} alt={m.title} className="w-full h-full object-cover" /> : <Package className="w-4 h-4 text-muted-foreground" />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-semibold text-sm truncate">{m.title}</div>
-                  <div className="text-xs text-muted-foreground truncate">{m.description}</div>
-                </div>
-              </button>
-            ))}
-          </div>
+          
+          <ModrinthBrowser 
+            projectType={browserType}
+            title="" 
+            subtitle=""
+            onSelectMod={addMod}
+          />
         </DialogContent>
       </Dialog>
     </Layout>

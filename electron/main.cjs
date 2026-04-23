@@ -605,43 +605,185 @@ ipcMain.handle('download-mod', async (_e, opts) => {
 //  Загрузить свой файл мода в инстанс
 // ============================================================
 
-ipcMain.handle('upload-mod-file', async (_e, opts) => {
+ipcMain.handle('upload-mod-file', async (_e, { instanceId, filePath }) => {
   try {
-    const { instanceId, filePath } = opts;
     if (!instanceId || !filePath) return { ok: false, error: 'Нет instanceId/filePath' };
+    const ext = path.extname(filePath).toLowerCase();
     
-    const modsDir = path.join(INSTANCES_DIR, instanceId, 'mods');
-    fs.mkdirSync(modsDir, { recursive: true });
-    
+    // Детекция папки
+    let folder = 'mods';
+    if (ext === '.zip') {
+      // Если в названии есть "shader" или это зипка не с модом - кладем в шейдеры/ресурсы
+      // Но проще всего спросить или просто класть в resourcepacks
+      folder = 'resourcepacks';
+      if (path.basename(filePath).toLowerCase().includes('shader')) folder = 'shaderpacks';
+    }
+
+    const destDir = path.join(INSTANCES_DIR, instanceId, folder);
+    fs.mkdirSync(destDir, { recursive: true });
+
     const fileName = path.basename(filePath);
-    const dest = path.join(modsDir, fileName);
+    const destPath = path.join(destDir, fileName);
     
-    log(`⇣ Загрузка локального мода: ${fileName}`);
-    fs.copyFileSync(filePath, dest);
-    
+    log(`⇣ Загрузка файла в ${folder}: ${fileName}`);
+    fs.copyFileSync(filePath, destPath);
+
     return { 
       ok: true, 
-      filename: fileName,
-      name: fileName.replace(/\.jar$/i, '').replace(/[-_]/g, ' ')
+      filename: fileName, 
+      name: fileName.replace(new RegExp(`\\${ext}$`, 'i'), '').replace(/[-_]/g, ' '),
+      folder
     };
   } catch (e) {
-    log('✖ upload-mod-file: ' + e.message);
+    log('✖ upload-file: ' + e.message);
     return { ok: false, error: e.message };
   }
 });
+
+// ============================================================
+//  Microsoft Login (OAuth2 + Xbox Live + Minecraft)
+// ============================================================
+
+const MS_CLIENT_ID = '00000000402b5328'; // Generic Minecraft Client ID
+const MS_REDIRECT = 'https://login.live.com/oauth20_desktop.srf';
+const TOKENS_PATH = path.join(app.getPath('userData'), 'ms_tokens.json');
+
+function saveToken(uuid, token) {
+  let tokens = {};
+  try { if (fs.existsSync(TOKENS_PATH)) tokens = JSON.parse(fs.readFileSync(TOKENS_PATH, 'utf8')); } catch(e) {}
+  tokens[uuid] = token;
+  fs.writeFileSync(TOKENS_PATH, JSON.stringify(tokens));
+}
+
+function getToken(uuid) {
+  try {
+    if (fs.existsSync(TOKENS_PATH)) {
+      const tokens = JSON.parse(fs.readFileSync(TOKENS_PATH, 'utf8'));
+      return tokens[uuid];
+    }
+  } catch(e) {}
+  return null;
+}
+
+ipcMain.handle('login-microsoft', async () => {
+  return new Promise((resolve) => {
+    const authWin = new BrowserWindow({
+      width: 500,
+      height: 600,
+      parent: mainWindow,
+      modal: true,
+      show: true,
+      title: 'Вход в Microsoft',
+      autoHideMenuBar: true,
+    });
+
+    const url = `https://login.live.com/oauth20_authorize.srf?client_id=${MS_CLIENT_ID}&response_type=code&redirect_uri=${MS_REDIRECT}&scope=XboxLive.signin%20offline_access`;
+    authWin.loadURL(url);
+
+    authWin.webContents.on('will-redirect', async (e, url) => {
+      if (url.startsWith(MS_REDIRECT)) {
+        e.preventDefault();
+        const code = new URL(url).searchParams.get('code');
+        authWin.close();
+        if (!code) return resolve({ ok: false, error: 'Авторизация отменена' });
+
+        try {
+          log('⇣ Обмен кода на токен…');
+          const tokenRes = await post('https://login.live.com/oauth20_token.srf', `client_id=${MS_CLIENT_ID}&code=${code}&grant_type=authorization_code&redirect_uri=${MS_REDIRECT}`, 'application/x-www-form-urlencoded');
+          
+          log('⇣ Авторизация Xbox Live…');
+          const xblRes = await postJson('https://user.auth.xboxlive.com/user/authenticate', {
+            Properties: { AuthMethod: 'RPS', SiteName: 'user.auth.xboxlive.com', RpsTicket: `d=${tokenRes.access_token}` },
+            RelyingParty: 'http://auth.xboxlive.com',
+            TokenType: 'JWT'
+          });
+
+          log('⇣ Авторизация XSTS…');
+          const xstsRes = await postJson('https://xsts.auth.xboxlive.com/xsts/authorize', {
+            Properties: { SandboxId: 'RETAIL', UserTokens: [xblRes.Token] },
+            RelyingParty: 'rp://api.minecraftservices.com/',
+            TokenType: 'JWT'
+          });
+
+          log('⇣ Вход в Minecraft…');
+          const mcRes = await postJson('https://api.minecraftservices.com/authentication/login_with_xbox', {
+            identityToken: `XBL3.0 x=${xblRes.DisplayClaims.xui[0].uhs};${xstsRes.Token}`
+          });
+
+          log('⇣ Получение профиля…');
+          const profile = await fetchJson('https://api.minecraftservices.com/minecraft/profile', mcRes.access_token);
+
+          saveToken(profile.id, mcRes.access_token);
+
+          resolve({
+            ok: true,
+            username: profile.name,
+            uuid: profile.id,
+          });
+        } catch (err) {
+          log('✖ Ошибка MS: ' + err.message);
+          resolve({ ok: false, error: err.message });
+        }
+      }
+    });
+
+    authWin.on('closed', () => resolve({ ok: false, error: 'Окно закрыто' }));
+  });
+});
+
+async function post(url, body, contentType) {
+  return new Promise((resolve, reject) => {
+    const lib = url.startsWith('https') ? https : http;
+    const req = lib.request(url, {
+      method: 'POST',
+      headers: { 'Content-Type': contentType, 'Content-Length': Buffer.byteLength(body) }
+    }, (res) => {
+      let data = '';
+      res.on('data', d => data += d);
+      res.on('end', () => resolve(JSON.parse(data)));
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+async function postJson(url, obj) {
+  return post(url, JSON.stringify(obj), 'application/json');
+}
+
+async function fetchJson(url, token) {
+  return new Promise((resolve, reject) => {
+    https.get(url, { headers: { 'Authorization': `Bearer ${token}` } }, (res) => {
+      let data = '';
+      res.on('data', d => data += d);
+      res.on('end', () => resolve(JSON.parse(data)));
+    }).on('error', reject);
+  });
+}
 
 // ============================================================
 //  LAUNCH
 // ============================================================
 
 ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
-  const username = (opts.username || 'PixieTester').replace(/[^A-Za-z0-9_]/g, '').slice(0, 16) || 'PixieTester';
+  const username = (opts.username || 'PixieTester');
+  const uuid = opts.uuid || '00000000000000000000000000000000';
+  const accountType = opts.accountType || 'offline';
   const mcVersion = opts.version || '1.20.1';
   const loader = (opts.loader || 'vanilla').toLowerCase();
   const loaderVersion = opts.loaderVersion;
   const instanceId = opts.instanceId;
   const ramGb = Math.max(1, Math.min(32, parseInt(opts.ramGb, 10) || 4));
   const startedAt = Date.now();
+
+  let accessToken = '0';
+  if (accountType === 'microsoft') {
+    accessToken = getToken(uuid);
+    if (!accessToken) {
+       log(`⚠ Токен Microsoft для ${username} не найден. Пробуем оффлайн.`);
+    }
+  }
 
   try {
     log(`▶ ${username} → ${loader} ${mcVersion}${loaderVersion ? ' (' + loaderVersion + ')' : ''}, RAM ${ramGb} ГБ`);
@@ -729,12 +871,10 @@ ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
       '--gameDir', gameDir,
       '--assetsDir', assetsDir,
       '--assetIndex', (vanilla.versionJson.assetIndex && vanilla.versionJson.assetIndex.id) || mcVersion,
-      '--uuid', '00000000-0000-0000-0000-000000000000',
-      '--accessToken', '0',
-      '--clientId', '0',
-      '--xuid', '0',
-      '--userType', 'legacy',
-      '--versionType', 'release',
+      '--uuid', uuid,
+      '--accessToken', accessToken,
+      '--userType', accountType === 'microsoft' ? 'msa' : 'legacy',
+      '--versionType', 'Pixiestape',
       '--width', '1280',
       '--height', '720',
     ];

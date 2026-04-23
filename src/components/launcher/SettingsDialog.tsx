@@ -75,18 +75,6 @@ export const SettingsDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
         </DialogHeader>
 
         <div className="space-y-6 py-2">
-          <Section icon={User} title="Ник в Minecraft (офлайн)" description="Используется при запуске игры без Microsoft-аккаунта. Только латиница, цифры, _.">
-            <div className="flex gap-2">
-              <Input
-                value={nickDraft}
-                onChange={(e) => setNickDraft(e.target.value.replace(/[^A-Za-z0-9_]/g, "").slice(0, 16))}
-                placeholder="Steve"
-                maxLength={16}
-              />
-              <Button onClick={saveNick} disabled={nickDraft === prefs.username || !nickDraft}>Сохранить</Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">Текущий: <span className="font-mono text-foreground">{prefs.username}</span></p>
-          </Section>
 
           <Section icon={Cpu} title={`Память: ${prefs.ramGb} ГБ`} description="Сколько RAM выделять Java при запуске Minecraft">
             <Slider value={[prefs.ramGb]} min={1} max={32} step={1} onValueChange={([v]) => updatePrefs({ ramGb: v })} />

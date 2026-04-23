@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   installMrpack: (opts) => ipcRenderer.invoke('install-mrpack', opts),
   downloadMod: (opts) => ipcRenderer.invoke('download-mod', opts),
   uploadModFile: (opts) => ipcRenderer.invoke('upload-mod-file', opts),
+  loginMicrosoft: () => ipcRenderer.invoke('login-microsoft'),
   onLaunchLog: (cb) => {
     const listener = (_e, msg) => cb(msg);
     ipcRenderer.on('launch-log', listener);
