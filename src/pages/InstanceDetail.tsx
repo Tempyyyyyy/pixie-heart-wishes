@@ -20,7 +20,7 @@ import { type ModrinthHit, type ProjectType } from "@/lib/modrinth";
 import { ModrinthBrowser } from "@/components/launcher/ModrinthBrowser";
 import { LaunchMinecraftButton } from "@/components/launcher/LaunchMinecraftButton";
 
-type ModInInstance = { id: string; name: string; icon: string | null; slug: string };
+type ModInInstance = { id: string; name: string; icon: string | null; slug: string; source?: string };
 type Instance = {
   id: string;
   user_id: string;

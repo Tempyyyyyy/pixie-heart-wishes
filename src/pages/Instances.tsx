@@ -41,6 +41,7 @@ const InstancesPage = () => {
   const [editing, setEditing] = useState<Instance | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", mc_version: "1.21.4", loader: "fabric" });
+  const [includePixieMod, setIncludePixieMod] = useState(true);
 
   // Mod manager
   const [managingId, setManagingId] = useState<string | null>(null);
@@ -93,12 +94,14 @@ const InstancesPage = () => {
     setForm({ name: "", description: "", mc_version: "1.21.4", loader: "fabric" });
     setEditing(null);
     setCreating(true);
+    setIncludePixieMod(true);
   };
 
   const openEdit = (inst: Instance) => {
     setForm({ name: inst.name, description: inst.description ?? "", mc_version: inst.mc_version, loader: inst.loader });
     setEditing(inst);
     setCreating(true);
+    setIncludePixieMod(inst.mods?.some(m => m.id === 'pixie-heart-wishes' || m.id === 'pixie:pixie-heart-wishes') ?? false);
   };
 
   const saveInstance = async () => {
@@ -109,7 +112,14 @@ const InstancesPage = () => {
       if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
       toast({ title: "Сборка обновлена" });
     } else {
-      const { error } = await supabase.from("instances").insert({ ...form, user_id: user.id, mods: [] });
+      const baseMods: ModInInstance[] = [];
+      const mods = includePixieMod
+        ? [
+            ...baseMods,
+            { id: "pixie-heart-wishes", slug: "pixie-heart-wishes", name: "Pixie Heart Wishes", icon: null } as ModInInstance,
+          ]
+        : baseMods;
+      const { error } = await supabase.from("instances").insert({ ...form, user_id: user.id, mods });
       if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
       toast({ title: "Сборка создана" });
     }
@@ -319,6 +329,16 @@ const InstancesPage = () => {
                 </Select>
               </div>
             </div>
+            {!editing && (
+              <label className="flex items-center gap-2 text-sm select-none">
+                <input
+                  type="checkbox"
+                  checked={includePixieMod}
+                  onChange={(e) => setIncludePixieMod(e.target.checked)}
+                />
+                <span>Добавить мод <span className="font-medium">Pixie Heart Wishes</span> в эту сборку</span>
+              </label>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreating(false)}>Отмена</Button>

@@ -88,12 +88,73 @@ function createWindow() {
 
 const MC_DIR = path.join(app.getPath('userData'), 'minecraft');
 const INSTANCES_DIR = path.join(MC_DIR, 'instances');
+const PIXIE_MANIFEST_PATH = path.join(__dirname, 'pixie-mod-manifest.json');
 
 function log(msg) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('launch-log', msg);
   }
   console.log('[mc]', msg);
+}
+
+function readJsonIfExists(p) {
+  try {
+    if (!fs.existsSync(p)) return null;
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function parseMcVersion(v) {
+  const parts = String(v).split('.').map((n) => parseInt(n, 10));
+  return {
+    major: parts[0] || 0,
+    minor: parts[1] || 0,
+    patch: parts[2] || 0,
+  };
+}
+
+function cmpMc(a, b) {
+  if (a.major !== b.major) return a.major - b.major;
+  if (a.minor !== b.minor) return a.minor - b.minor;
+  return a.patch - b.patch;
+}
+
+function mcInRange(mcVersion, rangeStr) {
+  // Very small parser for strings like: ">=1.14.0 <=1.21.4"
+  if (!rangeStr) return true;
+  const v = parseMcVersion(mcVersion);
+  const tokens = String(rangeStr).trim().split(/\s+/).filter(Boolean);
+  for (const t of tokens) {
+    const m = t.match(/^(>=|<=|>|<|=)\s*(\d+\.\d+(?:\.\d+)?)$/);
+    if (!m) continue;
+    const op = m[1];
+    const ref = parseMcVersion(m[2]);
+    const c = cmpMc(v, ref);
+    if (op === '>=' && c < 0) return false;
+    if (op === '<=' && c > 0) return false;
+    if (op === '>' && c <= 0) return false;
+    if (op === '<' && c >= 0) return false;
+    if (op === '=' && c !== 0) return false;
+  }
+  return true;
+}
+
+function loadPixieManifest() {
+  const fromFile = readJsonIfExists(PIXIE_MANIFEST_PATH);
+  if (!fromFile) return null;
+  if (!Array.isArray(fromFile.releases)) return null;
+  return fromFile;
+}
+
+function resolvePixieRelease({ mcVersion, loader }) {
+  const manifest = loadPixieManifest();
+  if (!manifest) return null;
+  const releases = manifest.releases.filter(r => !r.loader || String(r.loader).toLowerCase() === String(loader).toLowerCase());
+  const match = releases.find(r => mcInRange(mcVersion, r.mcVersionRange));
+  if (!match) return null;
+  return { manifest, release: match };
 }
 
 function httpGet(url) {
@@ -1017,6 +1078,26 @@ ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
       for (const m of opts.mods) {
         if (m.source === 'mrpack' || m.source === 'override') continue; // уже на диске
         if (!m.id || m.id.startsWith('mrpack:') || m.id.startsWith('override:')) continue;
+        if (m.source === 'pixie' || String(m.id).startsWith('pixie:') || String(m.id) === 'pixie-heart-wishes') {
+          const resolved = resolvePixieRelease({ mcVersion, loader });
+          if (!resolved) {
+            log(`⚠ ${m.name || 'Pixie Heart Wishes'}: нет релиза для ${loader} ${mcVersion} (проверь electron/pixie-mod-manifest.json)`);
+            continue;
+          }
+          const rel = resolved.release;
+          const filename = rel.filename || 'pixie-heart-wishes.jar';
+          const dest = path.join(gameDir, 'mods', filename);
+          try {
+            if (!fs.existsSync(dest)) {
+              log(`⇣ Pixie Heart Wishes: ${filename}`);
+              await downloadFileWithSha1(rel.url, dest, rel.sha1 && String(rel.sha1).startsWith('REPLACE_') ? null : rel.sha1);
+              log(`  + ${filename}`);
+            }
+          } catch (err) {
+            log(`⚠ Pixie Heart Wishes: ${err.message}`);
+          }
+          continue;
+        }
         try {
           const versions = await downloadJson(
             `https://api.modrinth.com/v2/project/${m.id}/version?game_versions=["${mcVersion}"]`

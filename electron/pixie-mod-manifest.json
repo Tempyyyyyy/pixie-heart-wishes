@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "modId": "pixie-heart-wishes",
+  "displayName": "Pixie Heart Wishes",
+  "releases": [
+    {
+      "mcVersionRange": ">=1.14.0 <=1.21.4",
+      "loader": "fabric",
+      "url": "REPLACE_ME_WITH_YOUR_RELEASE_URL/pixie-heart-wishes-fabric-1.14-1.21.x.jar",
+      "sha1": "REPLACE_ME_SHA1",
+      "filename": "pixie-heart-wishes.jar"
+    }
+  ]
+}
+

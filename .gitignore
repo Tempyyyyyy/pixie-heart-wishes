@@ -26,3 +26,6 @@ release-builds/
 client-mod/.gradle/ 
 client-mod/build/ 
 client-mod/.idea/ 
+client-mod/run/
+client-mod/wrapper/dists/
+client-mod/wrapper/dists/**
