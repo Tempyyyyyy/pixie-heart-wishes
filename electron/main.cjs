@@ -247,6 +247,12 @@ async function ensureVanillaVersion(version) {
   fs.mkdirSync(nativesDir, { recursive: true });
 
   log(`⇣ Библиотеки vanilla…`);
+  // Дебаг Java
+  try {
+    const javaArch = execSync('java -XshowSettings:properties -version 2>&1').toString();
+    console.log("[DRP] Java Environment Details:", javaArch.split('\n').filter(l => l.includes('os.arch') || l.includes('sun.arch.data.model')).join(' | '));
+  } catch(e) {}
+
   for (const lib of versionJson.libraries) {
     if (!isLibraryAllowed(lib)) continue;
     const downloads = lib.downloads || {};
@@ -287,6 +293,7 @@ async function ensureVanillaVersion(version) {
 }
 
 async function extractNativesToDir(jarPath, outDir) {
+  console.log(`[DRP] EXTRACTING FROM: ${jarPath}`);
   const buf = fs.readFileSync(jarPath);
   const eocdSig = 0x06054b50;
   let eocd = -1;
