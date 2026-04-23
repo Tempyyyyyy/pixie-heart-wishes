@@ -221,14 +221,24 @@ async function ensureVanillaVersion(version) {
     if (!isLibraryAllowed(lib)) continue;
     const downloads = lib.downloads || {};
     
+    // Проверяем, является ли эта библиотека сама по себе нативной (по имени)
+    const isNativeLib = lib.name && lib.name.includes(':natives-');
+    
     // Основной артефакт
     if (downloads.artifact && downloads.artifact.path) {
       const dest = path.join(libsDir, downloads.artifact.path);
       await downloadFileWithSha1(downloads.artifact.url, dest, downloads.artifact.sha1).catch(e => log('⚠ ' + e.message));
       libPaths.push(dest);
+      
+      // Если это нативная либа, распаковываем её
+      if (isNativeLib) {
+        try {
+          await extractNativesToDir(dest, nativesDir);
+        } catch (e) { log('⚠ unpack native artifact ' + e.message); }
+      }
     }
     
-    // Нативные библиотеки (DLL)
+    // Нативные классификаторы (старый формат или дополнения)
     const nativeCls = getNativeClassifier(lib);
     if (nativeCls && downloads.classifiers && downloads.classifiers[nativeCls]) {
       const nat = downloads.classifiers[nativeCls];
@@ -236,8 +246,7 @@ async function ensureVanillaVersion(version) {
       await downloadFileWithSha1(nat.url, dest, nat.sha1).catch(e => log('⚠ native ' + e.message));
       try {
         await extractNativesToDir(dest, nativesDir);
-      } catch (e) { log('⚠ unpack ' + e.message); }
-      // В новых версиях нативные JAR тоже должны быть в classpath
+      } catch (e) { log('⚠ unpack classifier ' + e.message); }
       libPaths.push(dest);
     }
   }
