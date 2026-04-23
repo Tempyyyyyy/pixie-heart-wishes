@@ -1,6 +1,7 @@
 const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
 const path = require('path');
 const { spawn, exec } = require('child_process');
+const DiscordRPC = require('discord-rpc');
 const fs = require('fs');
 const https = require('https');
 const http = require('http');
@@ -665,6 +666,41 @@ function getToken(uuid) {
   return null;
 }
 
+// --- Discord RPC ---
+const DISCORD_CLIENT_ID = '1216503021966233630'; // Generic Minecraft Client ID
+let rpc = null;
+const startTimestamp = new Date();
+
+function setActivity(details, state, largeImageKey = 'logo', largeImageText = 'Pixiestape') {
+  if (!rpc) return;
+  rpc.setActivity({
+    details,
+    state,
+    startTimestamp,
+    largeImageKey,
+    largeImageText,
+    instance: false,
+  }).catch(() => {});
+}
+
+function initRPC() {
+  rpc = new DiscordRPC.Client({ transport: 'ipc' });
+  rpc.on('ready', () => {
+    log('✓ Discord RPC готов');
+    setActivity('В лаунчере', 'Выбирает сборку');
+  });
+  rpc.login({ clientId: DISCORD_CLIENT_ID }).catch(err => {
+    log('✖ Discord RPC error: ' + err.message);
+    rpc = null;
+  });
+}
+
+initRPC();
+
+ipcMain.handle('update-presence', (e, { details, state }) => {
+  setActivity(details, state);
+});
+
 ipcMain.handle('login-microsoft', async () => {
   return new Promise((resolve) => {
     const authWin = new BrowserWindow({
@@ -901,6 +937,8 @@ ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
     ];
 
     log(`▶ Запускаю Java (libs: ${uniqLibs.length}, mainClass: ${mainClass.split('.').pop()})`);
+    setActivity(`Играет в ${instanceId || 'Minecraft'}`, `Версия ${mcVersion} (${loader})`);
+
     const child = spawn('java', javaArgs, { cwd: gameDir, detached: false });
 
     child.stdout.on('data', (d) => log(d.toString().trim()));
@@ -908,6 +946,7 @@ ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
     child.on('exit', (code) => {
       const seconds = Math.round((Date.now() - startedAt) / 1000);
       log(`◼ Minecraft завершился (код ${code}), сессия: ${seconds}с`);
+      setActivity('В лаунчере', 'Выбирает сборку');
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('mc-session-ended', {
           instanceId: instanceId || null,

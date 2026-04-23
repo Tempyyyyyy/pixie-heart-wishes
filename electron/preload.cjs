@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   downloadMod: (opts) => ipcRenderer.invoke('download-mod', opts),
   uploadModFile: (opts) => ipcRenderer.invoke('upload-mod-file', opts),
   loginMicrosoft: () => ipcRenderer.invoke('login-microsoft'),
+  updatePresence: (data) => ipcRenderer.invoke('update-presence', data),
   onLaunchLog: (cb) => {
     const listener = (_e, msg) => cb(msg);
     ipcRenderer.on('launch-log', listener);
