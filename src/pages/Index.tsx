@@ -95,25 +95,26 @@ const Index = () => {
             </p>
 
             <div className="flex flex-wrap gap-3">
-              {isElectron ? (
-                <Button asChild variant="hero" size="lg" className="rounded-full">
-                  <Link to="/instances">
-                    <Play className="w-4 h-4 mr-1 fill-current" />
-                    Открыть мои сборки
-                  </Link>
-                </Button>
-              ) : (
-                <Button asChild variant="hero" size="lg" className="rounded-full">
+              <Button asChild variant="hero" size="lg" className="rounded-full">
+                <Link to="/instances">
+                  <Layers className="w-4 h-4 mr-2" />
+                  Мои сборки
+                </Link>
+              </Button>
+              
+              {!isElectron && (
+                <Button asChild variant="outline" size="lg" className="rounded-full bg-secondary/40 border-border hover:bg-secondary">
                   <a href="https://github.com/Tempyyyyyy/pixie-heart-wishes/releases/latest" target="_blank" rel="noopener noreferrer">
-                    <Download className="w-4 h-4 mr-1" />
-                    Скачать лаунчер (.exe)
+                    <Download className="w-4 h-4 mr-2" />
+                    Скачать лаунчер
                   </a>
                 </Button>
               )}
+
               <Button asChild variant="outline" size="lg" className="rounded-full bg-secondary/40 border-border hover:bg-secondary">
                 <Link to="/modpacks">
                   Сборки сообщества
-                  <ArrowRight className="w-4 h-4 ml-1" />
+                  <ArrowRight className="w-4 h-4 ml-2" />
                 </Link>
               </Button>
             </div>

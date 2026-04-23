@@ -172,62 +172,59 @@ const InstanceDetailPage = () => {
         <ArrowLeft className="w-4 h-4" />Все сборки
       </button>
 
-      {/* HERO */}
-      <section className="relative rounded-3xl border border-border bg-card overflow-hidden mb-6 animate-fade-in">
-        <div
-          className="relative h-48 md:h-64 group"
+      {/* MODRINTH-STYLE HEADER */}
+      <section className="relative rounded-3xl border border-border bg-card/50 backdrop-blur-sm overflow-hidden mb-6 animate-fade-in">
+        {/* Banner Background */}
+        <div 
+          className="absolute inset-0 opacity-20 pointer-events-none"
           style={{
             background: instance.banner_url
               ? `url(${instance.banner_url}) center/cover`
               : "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.5) 100%)",
           }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
-          {isOwner && (
-            <button
-              onClick={() => bannerRef.current?.click()}
-              disabled={uploadingBanner}
-              className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-background/70 backdrop-blur border border-border text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 hover:bg-background"
-            >
-              {uploadingBanner ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
-              Сменить баннер
-            </button>
-          )}
-          <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={onBannerFile} />
-        </div>
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-card via-card/80 to-transparent" />
 
-        <div className="px-6 md:px-8 pb-6 -mt-20 md:-mt-24 relative">
-          <div className="flex flex-col md:flex-row md:items-end gap-5">
-            <div
-              className="w-24 h-24 md:w-28 md:h-28 rounded-2xl border-4 border-card shadow-2xl shrink-0 overflow-hidden"
-              style={{
-                background: instance.icon_url
-                  ? `url(${instance.icon_url}) center/cover`
-                  : "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent, var(--primary))))",
-              }}
-            >
-              {!instance.icon_url && (
-                <div className="w-full h-full flex items-center justify-center font-display font-bold text-3xl text-primary-foreground">
-                  {instance.name.slice(0, 1).toUpperCase()}
-                </div>
-              )}
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <h1 className="font-display font-bold text-3xl md:text-4xl mb-2 truncate">{instance.name}</h1>
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <Badge className="bg-primary/20 text-primary border-primary/30 uppercase">{instance.loader}</Badge>
-                <Badge variant="outline" className="font-mono">{instance.mc_version}</Badge>
-                <Badge variant="secondary"><Package className="w-3 h-3 mr-1" />{instance.mods.length} модов</Badge>
-                {instance.mrpack_url && <Badge variant="secondary">.mrpack</Badge>}
-                <span className="text-xs text-muted-foreground flex items-center gap-1 ml-2">
-                  <Calendar className="w-3 h-3" />Создано {new Date(instance.created_at).toLocaleDateString("ru")}
-                </span>
+        <div className="relative p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-6">
+          {/* Instance Icon */}
+          <div
+            className="w-20 h-20 md:w-24 md:h-24 rounded-2xl border border-border/50 shadow-xl shrink-0 overflow-hidden relative group/icon"
+            style={{
+              background: instance.icon_url
+                ? `url(${instance.icon_url}) center/cover`
+                : "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent, var(--primary))))",
+            }}
+          >
+            {!instance.icon_url && (
+              <div className="w-full h-full flex items-center justify-center font-display font-bold text-3xl text-primary-foreground">
+                {instance.name.slice(0, 1).toUpperCase()}
               </div>
-            </div>
-
+            )}
             {isOwner && (
-              <div className="flex gap-2 shrink-0">
+               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/icon:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                 <Pencil className="w-5 h-5 text-white" />
+               </div>
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <h1 className="font-display font-bold text-3xl md:text-4xl mb-2 truncate">{instance.name}</h1>
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 border border-primary/20 text-primary font-medium">
+                <Badge className="bg-transparent text-primary p-0 shadow-none border-none uppercase">{instance.loader}</Badge>
+                <span className="w-1 h-1 rounded-full bg-primary/40" />
+                <span>{instance.mc_version}</span>
+              </div>
+              <span className="text-muted-foreground flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
+                Никогда не запускалось
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            {isOwner && (
+              <>
                 <LaunchMinecraftButton
                   version={instance.mc_version}
                   loader={instance.loader}
@@ -236,99 +233,152 @@ const InstanceDetailPage = () => {
                   label="Играть"
                   variant="hero"
                   size="lg"
+                  className="h-12 px-8 rounded-xl shadow-lg shadow-primary/20"
                 />
-              </div>
+                <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => setEditing(true)}>
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-12 w-12 rounded-xl" 
+                  onClick={() => bannerRef.current?.click()}
+                  disabled={uploadingBanner}
+                >
+                  {uploadingBanner ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
+                </Button>
+                <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={onBannerFile} />
+              </>
             )}
           </div>
         </div>
       </section>
 
-      <div className="grid lg:grid-cols-[1fr_320px] gap-6 pb-8">
-        {/* MAIN: tabs */}
-        <Tabs defaultValue="mods" className="animate-fade-in">
-          <TabsList>
-            <TabsTrigger value="mods">Моды ({instance.mods.length})</TabsTrigger>
-            <TabsTrigger value="description">Описание</TabsTrigger>
+      {/* NAVIGATION TABS */}
+      <Tabs defaultValue="content" className="animate-fade-in">
+        <div className="flex items-center gap-1 mb-6 bg-card/30 p-1 rounded-xl w-fit border border-border/50">
+          <TabsList className="bg-transparent h-10">
+            <TabsTrigger value="content" className="rounded-lg data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+              Контент
+            </TabsTrigger>
+            <TabsTrigger value="files" className="rounded-lg data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+              Файлы
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="rounded-lg data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+              Логи
+            </TabsTrigger>
           </TabsList>
+        </div>
 
-          <TabsContent value="mods" className="mt-4">
-            {isOwner && (
-              <Button variant="hero" onClick={() => { setReplaceModId(null); setPickerOpen(true); }} className="mb-4">
-                <Plus className="w-4 h-4 mr-1" />Добавить мод из Modrinth
-              </Button>
-            )}
+        <TabsContent value="content" className="space-y-6 focus-visible:outline-none">
+          {/* TOOLBAR */}
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full md:w-96 group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input 
+                value={search} 
+                onChange={(e) => setSearch(e.target.value)} 
+                placeholder={`Поиск в ${instance.mods.length} проектах...`} 
+                className="pl-10 bg-card/50 border-border/50 focus:border-primary/50 transition-all rounded-xl"
+              />
+            </div>
+            
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              {isOwner && (
+                <>
+                  <Button variant="hero" onClick={() => { setReplaceModId(null); setPickerOpen(true); }} className="flex-1 md:flex-none rounded-xl">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Обзор контента
+                  </Button>
+                  <Button variant="outline" className="flex-1 md:flex-none rounded-xl">
+                    <FileBox className="w-4 h-4 mr-2" />
+                    Загрузить файлы
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* MOD LIST */}
+          <div className="rounded-2xl border border-border overflow-hidden bg-card/30">
+            <div className="grid grid-cols-[1fr_200px_100px] gap-4 px-6 py-3 border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <div>Проект</div>
+              <div>Версия</div>
+              <div className="text-right">Действия</div>
+            </div>
+
             {instance.mods.length === 0 ? (
-              <div className="text-center py-16 rounded-2xl border border-dashed border-border">
-                <Package className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-50" />
-                <p className="text-muted-foreground mb-4">Пока нет модов</p>
-                {isOwner && <Button variant="outline" onClick={() => setPickerOpen(true)}><Plus className="w-4 h-4 mr-1" />Добавить первый</Button>}
+              <div className="text-center py-20">
+                <Package className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30" />
+                <p className="text-muted-foreground mb-6">Эта сборка пока пуста</p>
+                {isOwner && (
+                  <Button variant="outline" onClick={() => setPickerOpen(true)} className="rounded-xl">
+                    <Plus className="w-4 h-4 mr-2" />Добавить первый мод
+                  </Button>
+                )}
               </div>
             ) : (
-              <div className="grid gap-2">
+              <div className="divide-y divide-border">
                 {instance.mods.map(m => (
-                  <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/40 transition-colors">
-                    <div className="w-12 h-12 rounded-lg bg-secondary border border-border overflow-hidden flex items-center justify-center shrink-0">
-                      {m.icon ? <img src={m.icon} alt={m.name} className="w-full h-full object-cover" /> : <FileBox className="w-5 h-5 text-muted-foreground" />}
+                  <div key={m.id} className="grid grid-cols-[1fr_200px_100px] gap-4 items-center px-6 py-4 hover:bg-primary/5 transition-colors group">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-12 h-12 rounded-xl bg-secondary/50 border border-border/50 overflow-hidden flex items-center justify-center shrink-0 shadow-sm group-hover:border-primary/30 transition-colors">
+                        {m.icon ? <img src={m.icon} alt={m.name} className="w-full h-full object-cover" /> : <Package className="w-6 h-6 text-muted-foreground" />}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm truncate group-hover:text-primary transition-colors">{m.name}</div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                           <span className="px-1.5 py-0.5 rounded bg-muted/50 border border-border/50">Mod</span>
+                           <span className="truncate">modrinth.com/mod/{m.slug}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold truncate">{m.name}</div>
-                      <a href={`https://modrinth.com/mod/${m.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-primary">
-                        modrinth.com/mod/{m.slug}
-                      </a>
+                    
+                    <div className="text-sm font-medium text-muted-foreground">
+                      <span className="px-2 py-1 rounded-md bg-secondary/30 border border-border/50 font-mono text-[11px]">
+                        Latest compatible
+                      </span>
                     </div>
-                    {isOwner && (
-                      <>
-                        <Button variant="ghost" size="sm" onClick={() => { setReplaceModId(m.id); setPickerOpen(true); }} title="Заменить">
-                          <Replace className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => removeMod(m.id)} className="text-destructive" title="Удалить">
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
+
+                    <div className="flex items-center justify-end gap-1">
+                      {isOwner && (
+                        <>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:text-primary" onClick={() => { setReplaceModId(m.id); setPickerOpen(true); }}>
+                            <Replace className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:text-destructive" onClick={() => removeMod(m.id)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
             )}
-          </TabsContent>
-
-          <TabsContent value="description" className="mt-4">
-            <div className="rounded-2xl border border-border bg-card p-6">
-              {instance.description ? (
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{instance.description}</p>
-              ) : (
-                <p className="text-sm text-muted-foreground italic">Описание не добавлено.</p>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* SIDEBAR */}
-        <aside className="space-y-4">
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <h3 className="font-display font-bold mb-3">Информация</h3>
-            <dl className="space-y-2 text-sm">
-              <InfoRow icon={Package} label="Модов" value={String(instance.mods.length)} />
-              <InfoRow icon={DownloadIcon} label="Лоадер" value={instance.loader} />
-              <InfoRow icon={FileBox} label="Версия MC" value={instance.mc_version} />
-              <InfoRow icon={Calendar} label="Обновлено" value={new Date(instance.updated_at).toLocaleDateString("ru")} />
-              <InfoRow icon={Users} label="Автор" value="Ты" />
-            </dl>
           </div>
+        </TabsContent>
 
-          {isOwner && (
-            <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
-              <h3 className="font-display font-bold mb-1">Управление</h3>
-              <Button variant="outline" className="w-full justify-start" onClick={() => setEditing(true)}>
-                <Pencil className="w-4 h-4 mr-2" />Изменить настройки
-              </Button>
-              <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive" onClick={deleteInstance}>
-                <Trash2 className="w-4 h-4 mr-2" />Удалить сборку
-              </Button>
-            </div>
-          )}
-        </aside>
-      </div>
+        <TabsContent value="files" className="mt-4 focus-visible:outline-none">
+          <div className="rounded-2xl border border-border bg-card/30 p-12 text-center">
+            <FileBox className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30" />
+            <h3 className="font-display font-bold text-lg mb-2">Просмотр файлов</h3>
+            <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+              Здесь вы сможете управлять файлами сборки напрямую. Функция в разработке.
+            </p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="logs" className="mt-4 focus-visible:outline-none">
+          <div className="rounded-2xl border border-border bg-card/30 p-12 text-center">
+            <Calendar className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30" />
+            <h3 className="font-display font-bold text-lg mb-2">Логи запуска</h3>
+            <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+              История запусков и ошибки игры будут отображаться здесь.
+            </p>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Edit dialog */}
       <Dialog open={editing} onOpenChange={setEditing}>

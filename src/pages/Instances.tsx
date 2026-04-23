@@ -184,54 +184,91 @@ const InstancesPage = () => {
         </div>
       )}
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 pb-6">
+      <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6 pb-6">
         {instances.map(inst => (
-          <article key={inst.id} className="group rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/50 hover:-translate-y-1 transition-all">
-            <Link to={`/instances/${inst.id}`} className="block">
-              <div
-                className="h-28 relative"
-                style={{
-                  background: inst.icon_url
-                    ? `url(${inst.icon_url}) center/cover`
-                    : "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.5))",
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
+          <article 
+            key={inst.id} 
+            className="group relative rounded-3xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden hover:border-primary/50 hover:bg-card/60 transition-all duration-300 flex flex-col"
+          >
+            {/* Banner/Header Area */}
+            <div className="h-24 relative overflow-hidden">
+               <div 
+                 className="absolute inset-0 opacity-40 group-hover:scale-105 transition-transform duration-500"
+                 style={{
+                   background: inst.icon_url
+                     ? `url(${inst.icon_url}) center/cover`
+                     : "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.5))",
+                 }}
+               />
+               <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-card/40 to-transparent" />
+            </div>
+
+            <div className="p-6 pt-0 -mt-8 relative flex-1 flex flex-col">
+              <div className="flex items-start gap-4 mb-4">
+                <div 
+                  className="w-16 h-16 rounded-2xl border-4 border-card bg-card shadow-lg shrink-0 overflow-hidden"
+                  style={{
+                    background: inst.icon_url
+                      ? `url(${inst.icon_url}) center/cover`
+                      : "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent, var(--primary))))",
+                  }}
+                >
+                  {!inst.icon_url && (
+                    <div className="w-full h-full flex items-center justify-center font-display font-bold text-xl text-primary-foreground">
+                      {inst.name.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="min-w-0 flex-1 pt-8">
+                  <h3 className="font-display font-bold text-xl truncate group-hover:text-primary transition-colors leading-tight">{inst.name}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="secondary" className="text-[10px] py-0 h-4 px-1.5 uppercase bg-primary/10 text-primary border-none">
+                      {inst.loader}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground font-mono">{inst.mc_version}</span>
+                  </div>
+                </div>
               </div>
-            </Link>
-            <div className="p-5 -mt-6 relative">
-              <div className="flex items-start justify-between mb-3">
-                <Link to={`/instances/${inst.id}`} className="min-w-0 flex-1">
-                  <h3 className="font-display font-bold text-lg truncate group-hover:text-primary transition-colors">{inst.name}</h3>
-                </Link>
-                <Badge variant="secondary" className="ml-2 shrink-0">{inst.mods.length} модов</Badge>
-              </div>
-              {inst.description && <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{inst.description}</p>}
-              <div className="flex gap-2 mb-4">
-                <Badge variant="outline" className="text-[10px] uppercase">{inst.loader}</Badge>
-                <Badge variant="outline" className="text-[10px]">{inst.mc_version}</Badge>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <LaunchMinecraftButton
-                  version={inst.mc_version}
-                  loader={inst.loader}
-                  instanceId={inst.id}
-                  mods={inst.mods}
-                  label="Играть"
-                  size="sm"
-                  variant="hero"
-                />
-                <Button variant="outline" size="sm" asChild>
-                  <Link to={`/instances/${inst.id}`}>
-                    <Package className="w-4 h-4 mr-1" />Открыть
-                  </Link>
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => openEdit(inst)}>
-                  <Pencil className="w-4 h-4 mr-1" />Изменить
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => deleteInstance(inst.id)} className="text-destructive hover:text-destructive">
-                  <Trash2 className="w-4 h-4 mr-1" />Удалить
-                </Button>
+
+              {inst.description && (
+                <p className="text-xs text-muted-foreground mb-6 line-clamp-2 leading-relaxed min-h-[2.5rem]">
+                  {inst.description}
+                </p>
+              )}
+
+              <div className="mt-auto space-y-3">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+                  <span className="flex items-center gap-1.5"><Package className="w-3.5 h-3.5" /> {inst.mods.length} проектов</span>
+                  <span className="flex items-center gap-1.5 font-mono"><Calendar className="w-3.5 h-3.5" /> {new Date().toLocaleDateString("ru")}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <LaunchMinecraftButton
+                    version={inst.mc_version}
+                    loader={inst.loader}
+                    instanceId={inst.id}
+                    mods={inst.mods}
+                    label="Играть"
+                    size="sm"
+                    variant="hero"
+                    className="rounded-xl font-bold h-9"
+                  />
+                  <Button variant="outline" size="sm" asChild className="rounded-xl h-9">
+                    <Link to={`/instances/${inst.id}`}>
+                      Открыть
+                    </Link>
+                  </Button>
+                </div>
+                
+                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <Button variant="ghost" size="sm" onClick={() => openEdit(inst)} className="flex-1 h-8 text-[11px] rounded-lg">
+                    <Pencil className="w-3.5 h-3.5 mr-1.5" /> Настройки
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => deleteInstance(inst.id)} className="flex-1 h-8 text-[11px] rounded-lg text-destructive hover:text-destructive hover:bg-destructive/10">
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Удалить
+                  </Button>
+                </div>
               </div>
             </div>
           </article>
