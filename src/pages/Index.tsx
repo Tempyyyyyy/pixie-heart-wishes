@@ -65,7 +65,7 @@ const Index = () => {
   return (
     <Layout>
       {/* HERO */}
-      <section className="relative overflow-hidden rounded-[2rem] border border-border card-shadow animate-fade-in">
+      <section className="relative overflow-hidden rounded-2xl md:rounded-[2rem] border border-border card-shadow animate-fade-in">
         <img
           src={heroBg}
           alt="Minecraft Nether dramatic landscape"
@@ -76,20 +76,20 @@ const Index = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/30" />
         <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
 
-        <div className="relative grid lg:grid-cols-[1fr_360px] gap-8 p-8 md:p-12">
+        <div className="relative grid lg:grid-cols-[1fr_360px] gap-6 lg:gap-8 p-5 sm:p-8 md:p-12">
           <div className="flex flex-col justify-center max-w-2xl">
-            <div className="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full bg-primary/15 border border-primary/40 text-xs font-medium text-primary mb-6">
+            <div className="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full bg-primary/15 border border-primary/40 text-xs font-medium text-primary mb-4 md:mb-6">
               <Flame className="w-3.5 h-3.5" />
               Тема {currentThemeName} · обновление 0.3
             </div>
 
-            <h1 className="font-display font-bold text-4xl md:text-6xl lg:text-7xl leading-[1.05] mb-6">
+            <h1 className="font-display font-bold text-3xl sm:text-4xl md:text-6xl lg:text-7xl leading-[1.05] mb-4 md:mb-6">
               Твой <span className="gradient-text">агрессивный</span> лаунчер.
               <br />
               Один клик — и ты в игре.
             </h1>
 
-            <p className="text-base md:text-lg text-muted-foreground mb-8 max-w-xl">
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-6 md:mb-8 max-w-xl">
               Тысячи модов, готовые сборки, шейдеры и текстур-паки прямо из Modrinth.
               Серверы, новости и профиль в стиле Steam — всё в одном кастомном интерфейсе.
             </p>
