@@ -306,10 +306,11 @@ const ProfilePage = () => {
                   className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30 border border-border hover:border-primary/40 transition-colors group"
                 >
                   <div
-                    className="w-12 h-12 rounded-lg bg-secondary shrink-0 border border-border overflow-hidden"
-                    style={inst.banner_url ? { background: `url(${inst.banner_url}) center/cover` } : undefined}
+                    className="w-12 h-12 rounded-lg bg-secondary shrink-0 border border-border overflow-hidden flex items-center justify-center"
+                    style={inst.icon_url ? { background: `url(${inst.icon_url}) center/cover` } : (inst.banner_url ? { background: `url(${inst.banner_url}) center/cover` } : undefined)}
                   >
-                    {!inst.banner_url && <div className="w-full h-full gradient-primary opacity-60" />}
+                    {!inst.icon_url && !inst.banner_url && <div className="w-full h-full gradient-primary opacity-60 flex items-center justify-center text-white font-bold">{inst.name.slice(0, 1).toUpperCase()}</div>}
+                    {inst.icon_url && <div className="sr-only">{inst.name} icon</div>}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold truncate group-hover:text-primary">{inst.name}</div>

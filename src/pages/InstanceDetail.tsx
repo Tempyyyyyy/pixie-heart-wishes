@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Loader2, ImagePlus, Pencil, Trash2, Save, Plus, Package, Search,
-  Replace, X, Users, Download as DownloadIcon, Calendar, FileBox,
+  Replace, X, Users, Download as DownloadIcon, Calendar, FileBox, Camera,
 } from "lucide-react";
 import { searchMods, type ModrinthHit } from "@/lib/modrinth";
 import { LaunchMinecraftButton } from "@/components/launcher/LaunchMinecraftButton";
@@ -45,10 +45,12 @@ const InstanceDetailPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const bannerRef = useRef<HTMLInputElement>(null);
+  const iconRef = useRef<HTMLInputElement>(null);
 
   const [instance, setInstance] = useState<Instance | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
 
   // Edit dialog
   const [editing, setEditing] = useState(false);
@@ -100,6 +102,22 @@ const InstanceDetailPage = () => {
     if (dbErr) return toast({ title: "Ошибка", description: dbErr.message, variant: "destructive" });
     setInstance(p => p ? { ...p, banner_url: publicUrl } : p);
     toast({ title: "Баннер обновлён" });
+  };
+
+  const onIconFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !instance) return;
+    if (file.size > 2 * 1024 * 1024) return toast({ title: "Файл больше 2 МБ", variant: "destructive" });
+    setUploadingIcon(true);
+    const path = `${user.id}/icon-${instance.id}-${Date.now()}.${file.name.split(".").pop()}`;
+    const { error: upErr } = await supabase.storage.from("banners").upload(path, file, { upsert: true });
+    if (upErr) { setUploadingIcon(false); return toast({ title: "Ошибка загрузки", description: upErr.message, variant: "destructive" }); }
+    const { data: { publicUrl } } = supabase.storage.from("banners").getPublicUrl(path);
+    const { error: dbErr } = await supabase.from("instances").update({ icon_url: publicUrl }).eq("id", instance.id);
+    setUploadingIcon(false);
+    if (dbErr) return toast({ title: "Ошибка", description: dbErr.message, variant: "destructive" });
+    setInstance(p => p ? { ...p, icon_url: publicUrl } : p);
+    toast({ title: "Иконка обновлена" });
   };
 
   const saveForm = async () => {
@@ -188,12 +206,13 @@ const InstanceDetailPage = () => {
         <div className="relative p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-6">
           {/* Instance Icon */}
           <div
-            className="w-20 h-20 md:w-24 md:h-24 rounded-2xl border border-border/50 shadow-xl shrink-0 overflow-hidden relative group/icon"
+            className="w-20 h-20 md:w-24 md:h-24 rounded-2xl border border-border/50 shadow-xl shrink-0 overflow-hidden relative group/icon cursor-pointer"
             style={{
               background: instance.icon_url
                 ? `url(${instance.icon_url}) center/cover`
                 : "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent, var(--primary))))",
             }}
+            onClick={() => isOwner && iconRef.current?.click()}
           >
             {!instance.icon_url && (
               <div className="w-full h-full flex items-center justify-center font-display font-bold text-3xl text-primary-foreground">
@@ -201,11 +220,12 @@ const InstanceDetailPage = () => {
               </div>
             )}
             {isOwner && (
-               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/icon:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                 <Pencil className="w-5 h-5 text-white" />
+               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/icon:opacity-100 transition-opacity flex items-center justify-center">
+                 {uploadingIcon ? <Loader2 className="w-6 h-6 animate-spin text-white" /> : <Camera className="w-6 h-6 text-white" />}
                </div>
             )}
           </div>
+          <input ref={iconRef} type="file" accept="image/*" className="hidden" onChange={onIconFile} />
 
           <div className="flex-1 min-w-0">
             <h1 className="font-display font-bold text-3xl md:text-4xl mb-2 truncate">{instance.name}</h1>
