@@ -62,7 +62,7 @@ export const TopBar = () => {
         <div className="ml-auto flex items-center gap-2 md:gap-3 shrink-0">
           <div className="hidden lg:flex items-center gap-2 px-3 h-9 rounded-full bg-secondary/60 border border-border text-xs text-muted-foreground">
             <GitBranch className="w-3.5 h-3.5 text-primary" />
-            <span className="font-medium text-foreground">v0.2.0</span>
+            <span className="font-medium text-foreground">v0.3.0</span>
             <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-bold">beta</span>
           </div>
 
