@@ -16,6 +16,7 @@ const os = require('os');
 const LAUNCHER_URL = process.env.LAUNCHER_URL || null;
 
 let mainWindow = null;
+const activeProcesses = new Map();
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -1068,10 +1069,17 @@ ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
     setActivity(`Играет в ${instanceId || 'Minecraft'}`, `Версия ${mcVersion} (${loader})`);
 
     const child = spawn('java', javaArgs, { cwd: gameDir, detached: false });
+    if (instanceId) {
+      activeProcesses.set(instanceId, child);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('mc-session-started', { instanceId });
+      }
+    }
 
     child.stdout.on('data', (d) => log(d.toString().trim()));
     child.stderr.on('data', (d) => log(d.toString().trim()));
     child.on('exit', (code) => {
+      if (instanceId) activeProcesses.delete(instanceId);
       const seconds = Math.round((Date.now() - startedAt) / 1000);
       log(`◼ Minecraft завершился (код ${code}), сессия: ${seconds}с`);
       setActivity('В лаунчере', 'Выбирает сборку');
@@ -1090,6 +1098,17 @@ ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
     log('✖ Ошибка: ' + e.message);
     return { ok: false, error: e.message };
   }
+});
+
+ipcMain.handle('stop-minecraft', async (event, instanceId) => {
+  if (!instanceId) return { ok: false, error: 'No instanceId' };
+  const child = activeProcesses.get(instanceId);
+  if (child) {
+    child.kill();
+    activeProcesses.delete(instanceId);
+    return { ok: true };
+  }
+  return { ok: false, error: 'Process not found' };
 });
 
 app.whenReady().then(createWindow);

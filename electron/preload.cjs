@@ -7,11 +7,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   downloadMod: (opts) => ipcRenderer.invoke('download-mod', opts),
   uploadModFile: (opts) => ipcRenderer.invoke('upload-mod-file', opts),
   loginMicrosoft: () => ipcRenderer.invoke('login-microsoft'),
-  updatePresence: (data) => ipcRenderer.invoke('update-presence', data),
+  stopMinecraft: (instanceId) => ipcRenderer.invoke('stop-minecraft', instanceId),
   onLaunchLog: (cb) => {
     const listener = (_e, msg) => cb(msg);
     ipcRenderer.on('launch-log', listener);
     return () => ipcRenderer.removeListener('launch-log', listener);
+  },
+  onSessionStarted: (cb) => {
+    const listener = (_e, data) => cb(data);
+    ipcRenderer.on('mc-session-started', listener);
+    return () => ipcRenderer.removeListener('mc-session-started', listener);
   },
   onSessionEnded: (cb) => {
     const listener = (_e, data) => cb(data);
