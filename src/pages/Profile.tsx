@@ -37,6 +37,7 @@ type InstanceCard = {
   loader: string;
   banner_url: string | null;
   icon_url: string | null;
+  mods?: any[];
 };
 
 const ProfilePage = () => {
