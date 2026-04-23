@@ -26,20 +26,15 @@ type Instance = {
   mods: ModInInstance[];
 };
 
-const VERSIONS = [
-  "1.21.4", "1.21.3", "1.21.2", "1.21.1", "1.21", 
-  "1.20.6", "1.20.4", "1.20.2", "1.20.1", "1.20",
-  "1.19.4", "1.19.3", "1.19.2", "1.19.1", "1.19",
-  "1.18.2", "1.18.1", "1.17.1", "1.16.5", "1.15.2", "1.14.4",
-  "1.12.2", "1.11.2", "1.10.2", "1.9.4", "1.8.9", "1.7.10"
-];
 const LOADERS = ["fabric", "forge", "neoforge", "quilt"];
+const MOJANG_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest_v2.json";
 
 const InstancesPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [versions, setVersions] = useState<string[]>([]);
   const [authOpen, setAuthOpen] = useState(false);
 
   // Create / edit instance
@@ -66,7 +61,24 @@ const InstancesPage = () => {
     setInstances((data ?? []).map(d => ({ ...d, mods: (d.mods as ModInInstance[]) ?? [] })));
   };
 
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [user]);
+  const loadVersions = async () => {
+    try {
+      const res = await fetch(MOJANG_MANIFEST);
+      const data = await res.json();
+      const list = data.versions
+        .filter((v: any) => v.type === 'release')
+        .map((v: any) => v.id);
+      setVersions(list);
+    } catch (e) {
+      setVersions(["1.21.4", "1.21.1", "1.20.1", "1.16.5", "1.12.2"]);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+    void loadVersions();
+    /* eslint-disable-next-line */
+  }, [user]);
 
   useEffect(() => {
     if (!pickerFor) return;
@@ -293,7 +305,10 @@ const InstancesPage = () => {
                 <Label>Версия MC</Label>
                 <Select value={form.mc_version} onValueChange={v => setForm({ ...form, mc_version: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{VERSIONS.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
+                  <SelectContent className="max-h-80">
+                    {versions.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                    {!versions.includes(form.mc_version) && <SelectItem value={form.mc_version}>{form.mc_version}</SelectItem>}
+                  </SelectContent>
                 </Select>
               </div>
               <div>
