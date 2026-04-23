@@ -157,6 +157,30 @@ function resolvePixieRelease({ mcVersion, loader }) {
   return { manifest, release: match };
 }
 
+async function ensurePixieModInstalled({ gameDir, mcVersion, loader }) {
+  const resolved = resolvePixieRelease({ mcVersion, loader });
+  if (!resolved) {
+    log(`⚠ Pixie Heart Wishes: нет релиза для ${loader} ${mcVersion} (проверь electron/pixie-mod-manifest.json)`);
+    return { ok: false };
+  }
+  const rel = resolved.release;
+  const filename = rel.filename || 'pixie-heart-wishes.jar';
+  const dest = path.join(gameDir, 'mods', filename);
+  try {
+    if (!fs.existsSync(dest)) {
+      log(`⇣ Pixie Heart Wishes: ${filename}`);
+      await downloadFileWithSha1(rel.url, dest, rel.sha1);
+      log(`  + ${filename}`);
+    } else {
+      log(`✓ Pixie Heart Wishes уже установлен: ${filename}`);
+    }
+    return { ok: true, filename };
+  } catch (e) {
+    log(`⚠ Pixie Heart Wishes: ${e.message}`);
+    return { ok: false, error: e.message };
+  }
+}
+
 function httpGet(url) {
   return new Promise((resolve, reject) => {
     const lib = url.startsWith('https') ? https : http;
@@ -1072,6 +1096,12 @@ ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
     fs.mkdirSync(gameDir, { recursive: true });
     fs.mkdirSync(path.join(gameDir, 'mods'), { recursive: true });
 
+    // Всегда (по умолчанию) ставим Pixie Heart Wishes, если для версии/лоадера есть релиз.
+    // Можно отключить, передав includePixieMod: false в opts.
+    if (opts.includePixieMod !== false && (loader === 'fabric' || loader === 'quilt')) {
+      await ensurePixieModInstalled({ gameDir, mcVersion, loader });
+    }
+
     // Дозагружаем моды из переданного списка (если есть и это не mrpack-файлы)
     if (Array.isArray(opts.mods) && opts.mods.length) {
       log(`⇣ Проверка модов сборки (${opts.mods.length})…`);
@@ -1079,23 +1109,7 @@ ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
         if (m.source === 'mrpack' || m.source === 'override') continue; // уже на диске
         if (!m.id || m.id.startsWith('mrpack:') || m.id.startsWith('override:')) continue;
         if (m.source === 'pixie' || String(m.id).startsWith('pixie:') || String(m.id) === 'pixie-heart-wishes') {
-          const resolved = resolvePixieRelease({ mcVersion, loader });
-          if (!resolved) {
-            log(`⚠ ${m.name || 'Pixie Heart Wishes'}: нет релиза для ${loader} ${mcVersion} (проверь electron/pixie-mod-manifest.json)`);
-            continue;
-          }
-          const rel = resolved.release;
-          const filename = rel.filename || 'pixie-heart-wishes.jar';
-          const dest = path.join(gameDir, 'mods', filename);
-          try {
-            if (!fs.existsSync(dest)) {
-              log(`⇣ Pixie Heart Wishes: ${filename}`);
-              await downloadFileWithSha1(rel.url, dest, rel.sha1 && String(rel.sha1).startsWith('REPLACE_') ? null : rel.sha1);
-              log(`  + ${filename}`);
-            }
-          } catch (err) {
-            log(`⚠ Pixie Heart Wishes: ${err.message}`);
-          }
+          await ensurePixieModInstalled({ gameDir, mcVersion, loader });
           continue;
         }
         try {
