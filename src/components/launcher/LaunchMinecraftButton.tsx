@@ -55,23 +55,9 @@ export const LaunchMinecraftButton = ({
   className?: string;
 }) => {
   const [launching, setLaunching] = useState(false);
-  const [logs, setLogs] = useState<string[]>([]);
-  const [open, setOpen] = useState(false);
-  const logRef = useRef<HTMLDivElement>(null);
   const { prefs } = useLaunchPrefs();
   const username = usernameProp || prefs.username;
 
-  useEffect(() => {
-    if (!window.electronAPI) return;
-    const off = window.electronAPI.onLaunchLog((msg) => {
-      setLogs((prev) => [...prev.slice(-300), msg]);
-    });
-    return off;
-  }, []);
-
-  useEffect(() => {
-    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-  }, [logs]);
 
   const onClick = async () => {
     if (!window.electronAPI?.isElectron) {
@@ -83,8 +69,6 @@ export const LaunchMinecraftButton = ({
       return;
     }
     setLaunching(true);
-    setOpen(true);
-    setLogs([`▶ Запрос: ${username} • Minecraft ${version} • ${loader}${loaderVersion ? ` ${loaderVersion}` : ""}`]);
     try {
       const res = await window.electronAPI.launchMinecraft({
         username,
@@ -110,37 +94,9 @@ export const LaunchMinecraftButton = ({
   };
 
   return (
-    <>
-      <Button onClick={onClick} disabled={launching} size={size} variant={variant} className={`gap-2 ${className ?? ""}`}>
-        {launching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-        {label}
-      </Button>
-
-      {open && (
-        <div className="fixed bottom-4 right-4 z-50 w-[480px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/50">
-            <Terminal className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">Лог запуска</span>
-            <span className="text-xs text-muted-foreground ml-2 truncate">{username} • {version} • {loader}</span>
-            <button
-              onClick={() => setOpen(false)}
-              className="ml-auto p-1 rounded hover:bg-accent"
-              aria-label="Закрыть"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div ref={logRef} className="max-h-64 overflow-y-auto p-3 text-xs font-mono bg-background/50">
-            {logs.length === 0 ? (
-              <div className="text-muted-foreground">Ожидание…</div>
-            ) : (
-              logs.map((l, i) => (
-                <div key={i} className="whitespace-pre-wrap break-all leading-relaxed">{l}</div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </>
+    <Button onClick={onClick} disabled={launching} size={size} variant={variant} className={`gap-2 ${className ?? ""}`}>
+      {launching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+      {label}
+    </Button>
   );
 };
