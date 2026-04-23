@@ -16,6 +16,7 @@ import Profile from "./pages/Profile.tsx";
 import News from "./pages/News.tsx";
 import Servers from "./pages/Servers.tsx";
 import Skins from "./pages/Skins.tsx";
+import Account from "./pages/Account.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
