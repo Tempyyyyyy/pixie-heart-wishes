@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Play, Trash2, Pencil, Package, Loader2, LogIn, Search, X, Replace, Layers } from "lucide-react";
+import { Plus, Play, Trash2, Pencil, Package, Loader2, LogIn, Search, X, Replace, Layers, Calendar } from "lucide-react";
 import { searchMods, type ModrinthHit } from "@/lib/modrinth";
 import { AuthDialog } from "@/components/launcher/AuthDialog";
 import { LaunchMinecraftButton } from "@/components/launcher/LaunchMinecraftButton";
