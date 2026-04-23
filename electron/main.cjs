@@ -229,6 +229,9 @@ async function ensureVanillaVersion(version) {
   const libsDir = path.join(MC_DIR, 'libraries');
   const libPaths = [];
   const nativesDir = path.join(versionDir, 'natives');
+  if (fs.existsSync(nativesDir)) {
+    try { fs.rmSync(nativesDir, { recursive: true, force: true }); } catch(e){}
+  }
   fs.mkdirSync(nativesDir, { recursive: true });
 
   log(`⇣ Библиотеки vanilla…`);
@@ -247,6 +250,7 @@ async function ensureVanillaVersion(version) {
       
       // Если это нативная либа, распаковываем её
       if (isNativeLib) {
+        console.log(`[DRP] Extracting native artifact: ${lib.name}`);
         try {
           await extractNativesToDir(dest, nativesDir);
         } catch (e) { log('⚠ unpack native artifact ' + e.message); }
@@ -257,6 +261,7 @@ async function ensureVanillaVersion(version) {
     const nativeCls = getNativeClassifier(lib);
     if (nativeCls && downloads.classifiers && downloads.classifiers[nativeCls]) {
       const nat = downloads.classifiers[nativeCls];
+      console.log(`[DRP] Choosing native ${nativeCls} for ${lib.name}`);
       const dest = path.join(libsDir, nat.path);
       await downloadFileWithSha1(nat.url, dest, nat.sha1).catch(e => log('⚠ native ' + e.message));
       try {
