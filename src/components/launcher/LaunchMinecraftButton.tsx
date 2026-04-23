@@ -107,7 +107,7 @@ export const LaunchMinecraftButton = ({
 
   return (
     <>
-      <Button onClick={onClick} disabled={launching} size={size} variant={variant} className="gap-2">
+      <Button onClick={onClick} disabled={launching} size={size} variant={variant} className={`gap-2 ${className ?? ""}`}>
         {launching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
         {label}
       </Button>
