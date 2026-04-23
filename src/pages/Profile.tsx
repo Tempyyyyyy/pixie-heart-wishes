@@ -324,6 +324,11 @@ const ProfilePage = () => {
         </section>
       </div>
 
+      {/* === FRIENDS === */}
+      <div className="pb-8">
+        <FriendsPanel />
+      </div>
+
       {/* Mod picker */}
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
