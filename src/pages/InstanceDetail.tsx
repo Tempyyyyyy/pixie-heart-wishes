@@ -37,7 +37,7 @@ type Instance = {
   updated_at: string;
 };
 
-const VERSIONS = ["1.21.1", "1.21", "1.20.6", "1.20.4", "1.20.1", "1.19.4", "1.19.2", "1.18.2", "1.16.5"];
+const VERSIONS = ["1.21.4", "1.21.3", "1.21.2", "1.21.1", "1.21", "1.20.6", "1.20.4", "1.20.1", "1.19.4", "1.19.2", "1.18.2", "1.16.5"];
 const LOADERS = ["fabric", "forge", "neoforge", "quilt", "vanilla"];
 
 const InstanceDetailPage = () => {

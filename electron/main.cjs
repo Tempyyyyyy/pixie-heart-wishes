@@ -677,7 +677,7 @@ ipcMain.handle('login-microsoft', async () => {
       autoHideMenuBar: true,
     });
 
-    const url = `https://login.live.com/oauth20_authorize.srf?client_id=${MS_CLIENT_ID}&response_type=code&redirect_uri=${MS_REDIRECT}&scope=XboxLive.signin%20offline_access`;
+    const url = `https://login.live.com/oauth20_authorize.srf?client_id=${MS_CLIENT_ID}&response_type=code&redirect_uri=${MS_REDIRECT}&scope=XboxLive.signin%20offline_access&prompt=select_account`;
     authWin.loadURL(url);
 
     let resolved = false;
