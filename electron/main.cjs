@@ -888,8 +888,52 @@ ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
 
     const sep = process.platform === 'win32' ? ';' : ':';
     const allLibs = [...extraLibs, ...vanilla.libPaths, vanilla.clientJar];
-    const uniqLibs = Array.from(new Set(allLibs));
+    
+    // Умная дедупликация: если есть несколько версий одной библиотеки, оставляем последнюю
+    const libMap = new Map();
+    const finalLibs = [];
+    
+    for (const libPath of allLibs) {
+      if (libPath === vanilla.clientJar) {
+        finalLibs.push(libPath);
+        continue;
+      }
+      
+      // Пытаемся вычленить идентификатор библиотеки (путь до версии)
+      // Пример: .../org/ow2/asm/asm/9.9/asm-9.9.jar -> org/ow2/asm/asm
+      const parts = libPath.split(/[\\/]/);
+      if (parts.length > 2) {
+        // Берем путь без последних двух элементов (версия и файл)
+        const libKey = parts.slice(0, -2).join('/');
+        const version = parts[parts.length - 2];
+        
+        if (!libMap.has(libKey) || isNewer(version, libMap.get(libKey).version)) {
+          libMap.set(libKey, { path: libPath, version });
+        }
+      } else {
+        finalLibs.push(libPath);
+      }
+    }
+    
+    // Собираем итоговый список из Map
+    for (const entry of libMap.values()) {
+      finalLibs.push(entry.path);
+    }
+
+    const uniqLibs = Array.from(new Set(finalLibs));
     const classpath = uniqLibs.join(sep);
+
+    function isNewer(v1, v2) {
+      const p1 = v1.split('.').map(Number);
+      const p2 = v2.split('.').map(Number);
+      for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+        const n1 = p1[i] || 0;
+        const n2 = p2[i] || 0;
+        if (n1 > n2) return true;
+        if (n1 < n2) return false;
+      }
+      return false;
+    }
 
     const gameDir = instanceId ? path.join(INSTANCES_DIR, instanceId) : MC_DIR;
     fs.mkdirSync(gameDir, { recursive: true });
