@@ -65,7 +65,7 @@ const Index = () => {
   return (
     <Layout>
       {/* HERO */}
-      <section className="relative overflow-hidden rounded-[2rem] border border-border card-shadow animate-fade-in">
+      <section className="relative overflow-hidden rounded-2xl md:rounded-[2rem] border border-border card-shadow animate-fade-in">
         <img
           src={heroBg}
           alt="Minecraft Nether dramatic landscape"
@@ -76,20 +76,20 @@ const Index = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/30" />
         <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
 
-        <div className="relative grid lg:grid-cols-[1fr_360px] gap-8 p-8 md:p-12">
+        <div className="relative grid lg:grid-cols-[1fr_360px] gap-6 lg:gap-8 p-5 sm:p-8 md:p-12">
           <div className="flex flex-col justify-center max-w-2xl">
-            <div className="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full bg-primary/15 border border-primary/40 text-xs font-medium text-primary mb-6">
+            <div className="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full bg-primary/15 border border-primary/40 text-xs font-medium text-primary mb-4 md:mb-6">
               <Flame className="w-3.5 h-3.5" />
               Тема {currentThemeName} · обновление 0.3
             </div>
 
-            <h1 className="font-display font-bold text-4xl md:text-6xl lg:text-7xl leading-[1.05] mb-6">
+            <h1 className="font-display font-bold text-3xl sm:text-4xl md:text-6xl lg:text-7xl leading-[1.05] mb-4 md:mb-6">
               Твой <span className="gradient-text">агрессивный</span> лаунчер.
               <br />
               Один клик — и ты в игре.
             </h1>
 
-            <p className="text-base md:text-lg text-muted-foreground mb-8 max-w-xl">
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-6 md:mb-8 max-w-xl">
               Тысячи модов, готовые сборки, шейдеры и текстур-паки прямо из Modrinth.
               Серверы, новости и профиль в стиле Steam — всё в одном кастомном интерфейсе.
             </p>
@@ -121,15 +121,15 @@ const Index = () => {
           </div>
 
           {/* Stats column */}
-          <div className="flex flex-col gap-4 justify-center">
+          <div className="grid grid-cols-3 lg:grid-cols-1 gap-3 lg:gap-4 lg:justify-center">
             {stats.map(({ icon: Icon, value, label }) => (
               <div
                 key={label}
-                className="rounded-2xl border border-border bg-card/70 backdrop-blur-md p-5 hover:border-primary/40 transition-colors"
+                className="rounded-xl lg:rounded-2xl border border-border bg-card/70 backdrop-blur-md p-3 lg:p-5 hover:border-primary/40 transition-colors"
               >
-                <Icon className="w-5 h-5 text-primary mb-3" />
-                <div className="font-display font-bold text-3xl mb-1">{value}</div>
-                <div className="text-xs text-muted-foreground">{label}</div>
+                <Icon className="w-4 h-4 lg:w-5 lg:h-5 text-primary mb-2 lg:mb-3" />
+                <div className="font-display font-bold text-lg lg:text-3xl mb-0.5 lg:mb-1">{value}</div>
+                <div className="text-[10px] lg:text-xs text-muted-foreground leading-tight">{label}</div>
               </div>
             ))}
           </div>
@@ -137,19 +137,19 @@ const Index = () => {
       </section>
 
       {/* NEWS + COMPACT MODPACKS GRID */}
-      <section className="mt-12 grid lg:grid-cols-[1fr_360px] gap-6">
+      <section className="mt-8 md:mt-12 grid lg:grid-cols-[1fr_360px] gap-6">
         {/* News column */}
         <div>
-          <div className="flex items-end justify-between mb-5">
-            <div>
-              <h2 className="font-display font-bold text-2xl md:text-3xl flex items-center gap-2">
-                <Newspaper className="w-7 h-7 text-primary" />
-                Новости Minecraft
+          <div className="flex items-end justify-between mb-4 md:mb-5 gap-3">
+            <div className="min-w-0">
+              <h2 className="font-display font-bold text-xl md:text-3xl flex items-center gap-2">
+                <Newspaper className="w-5 h-5 md:w-7 md:h-7 text-primary shrink-0" />
+                <span className="truncate">Новости Minecraft</span>
               </h2>
-              <p className="text-muted-foreground text-sm mt-1">Свежие истории сообщества и обновления</p>
+              <p className="text-muted-foreground text-xs md:text-sm mt-1 hidden sm:block">Свежие истории сообщества и обновления</p>
             </div>
-            <Link to="/news" className="text-sm font-medium text-primary hover:text-primary-glow transition-colors flex items-center gap-1">
-              Все новости <ArrowRight className="w-4 h-4" />
+            <Link to="/news" className="text-xs md:text-sm font-medium text-primary hover:text-primary-glow transition-colors flex items-center gap-1 shrink-0">
+              Все <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
             </Link>
           </div>
 
@@ -251,17 +251,17 @@ const Index = () => {
       </section>
 
       {/* POPULAR MODS */}
-      <section className="mt-12">
-        <div className="flex items-end justify-between mb-6">
-          <div>
-            <h2 className="font-display font-bold text-2xl md:text-3xl flex items-center gap-2">
-              <Sparkles className="w-7 h-7 text-primary" />
+      <section className="mt-8 md:mt-12">
+        <div className="flex items-end justify-between mb-4 md:mb-6 gap-3">
+          <div className="min-w-0">
+            <h2 className="font-display font-bold text-xl md:text-3xl flex items-center gap-2">
+              <Sparkles className="w-5 h-5 md:w-7 md:h-7 text-primary shrink-0" />
               Топ модов
             </h2>
-            <p className="text-muted-foreground text-sm mt-1">Самые скачиваемые моды сообщества</p>
+            <p className="text-muted-foreground text-xs md:text-sm mt-1 hidden sm:block">Самые скачиваемые моды сообщества</p>
           </div>
-          <Link to="/library" className="text-sm font-medium text-primary hover:text-primary-glow transition-colors flex items-center gap-1">
-            Все моды <ArrowRight className="w-4 h-4" />
+          <Link to="/library" className="text-xs md:text-sm font-medium text-primary hover:text-primary-glow transition-colors flex items-center gap-1 shrink-0">
+            Все <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
           </Link>
         </div>
 
