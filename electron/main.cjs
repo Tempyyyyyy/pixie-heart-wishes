@@ -156,13 +156,19 @@ function isLibraryAllowed(lib) {
 }
 
 function getNativeClassifier(lib) {
-  if (!lib.natives) return null;
   const platform =
     process.platform === 'win32' ? 'windows' :
     process.platform === 'darwin' ? 'osx' : 'linux';
-  const cls = lib.natives[platform];
-  if (!cls) return null;
-  return cls.replace('${arch}', process.arch === 'x64' ? '64' : '32');
+    
+  if (lib.natives) return lib.natives[platform]?.replace('${arch}', process.arch === 'x64' ? '64' : '32') || null;
+  
+  // В новых версиях (1.19+) нативы часто лежат просто в classifiers
+  if (lib.downloads && lib.downloads.classifiers) {
+    if (platform === 'windows') return 'natives-windows';
+    if (platform === 'osx') return 'natives-macos';
+    if (platform === 'linux') return 'natives-linux';
+  }
+  return null;
 }
 
 function mavenToPath(coord) {
@@ -214,11 +220,15 @@ async function ensureVanillaVersion(version) {
   for (const lib of versionJson.libraries) {
     if (!isLibraryAllowed(lib)) continue;
     const downloads = lib.downloads || {};
+    
+    // Основной артефакт
     if (downloads.artifact && downloads.artifact.path) {
       const dest = path.join(libsDir, downloads.artifact.path);
       await downloadFileWithSha1(downloads.artifact.url, dest, downloads.artifact.sha1).catch(e => log('⚠ ' + e.message));
       libPaths.push(dest);
     }
+    
+    // Нативные библиотеки (DLL)
     const nativeCls = getNativeClassifier(lib);
     if (nativeCls && downloads.classifiers && downloads.classifiers[nativeCls]) {
       const nat = downloads.classifiers[nativeCls];
@@ -227,6 +237,8 @@ async function ensureVanillaVersion(version) {
       try {
         await extractNativesToDir(dest, nativesDir);
       } catch (e) { log('⚠ unpack ' + e.message); }
+      // В новых версиях нативные JAR тоже должны быть в classpath
+      libPaths.push(dest);
     }
   }
 
