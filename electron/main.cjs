@@ -686,6 +686,7 @@ function setActivity(details, state, largeImageKey = 'modrinth', largeImageText 
 
 function initRPC() {
   try {
+    DiscordRPC.register(DISCORD_CLIENT_ID);
     rpc = new DiscordRPC.Client({ transport: 'ipc' });
     rpc.on('ready', () => {
       rpcReady = true;
