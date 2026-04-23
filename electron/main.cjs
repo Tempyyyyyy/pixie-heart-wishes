@@ -667,12 +667,13 @@ function getToken(uuid) {
 }
 
 // --- Discord RPC ---
-const DISCORD_CLIENT_ID = '1216503021966233630'; // Generic Minecraft Client ID
+const DISCORD_CLIENT_ID = '903264027732955176'; // Modrinth Client ID as fallback for testing
 let rpc = null;
+let rpcReady = false;
 const startTimestamp = new Date();
 
-function setActivity(details, state, largeImageKey = 'logo', largeImageText = 'Pixiestape') {
-  if (!rpc) return;
+function setActivity(details, state, largeImageKey = 'modrinth', largeImageText = 'Pixiestape') {
+  if (!rpc || !rpcReady) return;
   rpc.setActivity({
     details,
     state,
@@ -680,19 +681,30 @@ function setActivity(details, state, largeImageKey = 'logo', largeImageText = 'P
     largeImageKey,
     largeImageText,
     instance: false,
-  }).catch(() => {});
+  }).catch(e => log('✖ RPC Update Error: ' + e.message));
 }
 
 function initRPC() {
-  rpc = new DiscordRPC.Client({ transport: 'ipc' });
-  rpc.on('ready', () => {
-    log('✓ Discord RPC готов');
-    setActivity('В лаунчере', 'Выбирает сборку');
-  });
-  rpc.login({ clientId: DISCORD_CLIENT_ID }).catch(err => {
-    log('✖ Discord RPC error: ' + err.message);
-    rpc = null;
-  });
+  try {
+    rpc = new DiscordRPC.Client({ transport: 'ipc' });
+    rpc.on('ready', () => {
+      rpcReady = true;
+      log('✓ Discord RPC готов');
+      setActivity('В лаунчере', 'Выбирает сборку');
+    });
+
+    rpc.on('disconnected', () => {
+      rpcReady = false;
+      log('⚠ Discord RPC отключен');
+    });
+
+    rpc.login({ clientId: DISCORD_CLIENT_ID }).catch(err => {
+      log('✖ Discord Login Error: ' + err.message);
+      rpc = null;
+    });
+  } catch (err) {
+    log('✖ Discord RPC Init Error: ' + err.message);
+  }
 }
 
 initRPC();
