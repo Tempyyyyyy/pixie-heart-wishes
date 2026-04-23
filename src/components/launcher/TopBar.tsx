@@ -1,4 +1,4 @@
-import { Search, Bell, LogIn, GitBranch, Settings, LogOut, User as UserIcon } from "lucide-react";
+import { Search, Bell, LogIn, GitBranch, Settings, LogOut, User as UserIcon, Flame } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthDialog } from "./AuthDialog";
 import { SettingsDialog } from "./SettingsDialog";
+import { MobileNav } from "./MobileNav";
 import { useEffect } from "react";
 
 export const TopBar = () => {
