@@ -39,6 +39,7 @@ export const LaunchMinecraftButton = ({
   label = "Запустить Minecraft",
   size = "default" as "default" | "sm" | "lg",
   variant = "default" as "default" | "hero" | "play" | "outline",
+  className,
 }: {
   version?: string;
   loader?: string;
@@ -49,6 +50,7 @@ export const LaunchMinecraftButton = ({
   label?: string;
   size?: "default" | "sm" | "lg";
   variant?: "default" | "hero" | "play" | "outline";
+  className?: string;
 }) => {
   const [launching, setLaunching] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
