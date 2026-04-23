@@ -121,15 +121,15 @@ const Index = () => {
           </div>
 
           {/* Stats column */}
-          <div className="flex flex-col gap-4 justify-center">
+          <div className="grid grid-cols-3 lg:grid-cols-1 gap-3 lg:gap-4 lg:justify-center">
             {stats.map(({ icon: Icon, value, label }) => (
               <div
                 key={label}
-                className="rounded-2xl border border-border bg-card/70 backdrop-blur-md p-5 hover:border-primary/40 transition-colors"
+                className="rounded-xl lg:rounded-2xl border border-border bg-card/70 backdrop-blur-md p-3 lg:p-5 hover:border-primary/40 transition-colors"
               >
-                <Icon className="w-5 h-5 text-primary mb-3" />
-                <div className="font-display font-bold text-3xl mb-1">{value}</div>
-                <div className="text-xs text-muted-foreground">{label}</div>
+                <Icon className="w-4 h-4 lg:w-5 lg:h-5 text-primary mb-2 lg:mb-3" />
+                <div className="font-display font-bold text-lg lg:text-3xl mb-0.5 lg:mb-1">{value}</div>
+                <div className="text-[10px] lg:text-xs text-muted-foreground leading-tight">{label}</div>
               </div>
             ))}
           </div>
