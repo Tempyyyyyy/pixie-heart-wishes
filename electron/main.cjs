@@ -680,54 +680,75 @@ ipcMain.handle('login-microsoft', async () => {
     const url = `https://login.live.com/oauth20_authorize.srf?client_id=${MS_CLIENT_ID}&response_type=code&redirect_uri=${MS_REDIRECT}&scope=XboxLive.signin%20offline_access`;
     authWin.loadURL(url);
 
-    authWin.webContents.on('will-redirect', async (e, url) => {
+    let resolved = false;
+
+    authWin.webContents.on('will-navigate', async (e, url) => {
       if (url.startsWith(MS_REDIRECT)) {
         e.preventDefault();
         const code = new URL(url).searchParams.get('code');
-        authWin.close();
-        if (!code) return resolve({ ok: false, error: 'Авторизация отменена' });
-
-        try {
-          log('⇣ Обмен кода на токен…');
-          const tokenRes = await post('https://login.live.com/oauth20_token.srf', `client_id=${MS_CLIENT_ID}&code=${code}&grant_type=authorization_code&redirect_uri=${MS_REDIRECT}`, 'application/x-www-form-urlencoded');
-          
-          log('⇣ Авторизация Xbox Live…');
-          const xblRes = await postJson('https://user.auth.xboxlive.com/user/authenticate', {
-            Properties: { AuthMethod: 'RPS', SiteName: 'user.auth.xboxlive.com', RpsTicket: `d=${tokenRes.access_token}` },
-            RelyingParty: 'http://auth.xboxlive.com',
-            TokenType: 'JWT'
-          });
-
-          log('⇣ Авторизация XSTS…');
-          const xstsRes = await postJson('https://xsts.auth.xboxlive.com/xsts/authorize', {
-            Properties: { SandboxId: 'RETAIL', UserTokens: [xblRes.Token] },
-            RelyingParty: 'rp://api.minecraftservices.com/',
-            TokenType: 'JWT'
-          });
-
-          log('⇣ Вход в Minecraft…');
-          const mcRes = await postJson('https://api.minecraftservices.com/authentication/login_with_xbox', {
-            identityToken: `XBL3.0 x=${xblRes.DisplayClaims.xui[0].uhs};${xstsRes.Token}`
-          });
-
-          log('⇣ Получение профиля…');
-          const profile = await fetchJson('https://api.minecraftservices.com/minecraft/profile', mcRes.access_token);
-
-          saveToken(profile.id, mcRes.access_token);
-
-          resolve({
-            ok: true,
-            username: profile.name,
-            uuid: profile.id,
-          });
-        } catch (err) {
-          log('✖ Ошибка MS: ' + err.message);
-          resolve({ ok: false, error: err.message });
+        if (code) {
+          resolved = true;
+          authWin.close();
+          handleCode(code);
         }
       }
     });
 
-    authWin.on('closed', () => resolve({ ok: false, error: 'Окно закрыто' }));
+    authWin.webContents.on('will-redirect', async (e, url) => {
+      if (url.startsWith(MS_REDIRECT)) {
+        e.preventDefault();
+        const code = new URL(url).searchParams.get('code');
+        if (code) {
+          resolved = true;
+          authWin.close();
+          handleCode(code);
+        }
+      }
+    });
+
+    async function handleCode(code) {
+      try {
+        log('⇣ Обмен кода на токен…');
+        const tokenRes = await post('https://login.live.com/oauth20_token.srf', `client_id=${MS_CLIENT_ID}&code=${code}&grant_type=authorization_code&redirect_uri=${MS_REDIRECT}`, 'application/x-www-form-urlencoded');
+        
+        log('⇣ Авторизация Xbox Live…');
+        const xblRes = await postJson('https://user.auth.xboxlive.com/user/authenticate', {
+          Properties: { AuthMethod: 'RPS', SiteName: 'user.auth.xboxlive.com', RpsTicket: `d=${tokenRes.access_token}` },
+          RelyingParty: 'http://auth.xboxlive.com',
+          TokenType: 'JWT'
+        });
+
+        log('⇣ Авторизация XSTS…');
+        const xstsRes = await postJson('https://xsts.auth.xboxlive.com/xsts/authorize', {
+          Properties: { SandboxId: 'RETAIL', UserTokens: [xblRes.Token] },
+          RelyingParty: 'rp://api.minecraftservices.com/',
+          TokenType: 'JWT'
+        });
+
+        log('⇣ Вход в Minecraft…');
+        const mcRes = await postJson('https://api.minecraftservices.com/authentication/login_with_xbox', {
+          identityToken: `XBL3.0 x=${xblRes.DisplayClaims.xui[0].uhs};${xstsRes.Token}`
+        });
+
+        log('⇣ Получение профиля…');
+        const profile = await fetchJson('https://api.minecraftservices.com/minecraft/profile', mcRes.access_token);
+
+        saveToken(profile.id, mcRes.access_token);
+
+        resolve({
+          ok: true,
+          username: profile.name,
+          uuid: profile.id,
+        });
+      } catch (err) {
+        log('✖ Ошибка MS: ' + err.message);
+        resolve({ ok: false, error: err.message });
+      }
+    }
+
+    authWin.on('closed', () => {
+      if (!resolved) resolve({ ok: false, error: 'Авторизация отменена или окно закрыто' });
+    });
   });
 });
 
