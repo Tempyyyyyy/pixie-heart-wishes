@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Play, Flame, TrendingUp, Package, Users, ArrowRight, Sparkles, Box, Loader2, Download, Newspaper, ExternalLink } from "lucide-react";
+import { Play, Flame, TrendingUp, Package, Users, ArrowRight, Sparkles, Box, Loader2, Download, Newspaper, ExternalLink, Layers } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
