@@ -159,14 +159,29 @@ function getNativeClassifier(lib) {
   const platform =
     process.platform === 'win32' ? 'windows' :
     process.platform === 'darwin' ? 'osx' : 'linux';
+  const arch = process.arch === 'x64' ? 'x64' : 'x86';
     
-  if (lib.natives) return lib.natives[platform]?.replace('${arch}', process.arch === 'x64' ? '64' : '32') || null;
+  if (lib.natives) {
+    let cls = lib.natives[platform];
+    if (!cls) return null;
+    return cls.replace('${arch}', process.arch === 'x64' ? '64' : '32');
+  }
   
-  // В новых версиях (1.19+) нативы часто лежат просто в classifiers
   if (lib.downloads && lib.downloads.classifiers) {
-    if (platform === 'windows') return 'natives-windows';
-    if (platform === 'osx') return 'natives-macos';
-    if (platform === 'linux') return 'natives-linux';
+    const cls = lib.downloads.classifiers;
+    if (platform === 'windows') {
+      if (arch === 'x64' && cls['natives-windows-x86_64']) return 'natives-windows-x86_64';
+      if (arch === 'x64' && cls['natives-windows-64']) return 'natives-windows-64';
+      return cls['natives-windows'] ? 'natives-windows' : null;
+    }
+    if (platform === 'osx') {
+      if (arch === 'x64' && cls['natives-macos-x86_64']) return 'natives-macos-x86_64';
+      return cls['natives-macos'] ? 'natives-macos' : null;
+    }
+    if (platform === 'linux') {
+      if (arch === 'x64' && cls['natives-linux-x86_64']) return 'natives-linux-x86_64';
+      return cls['natives-linux'] ? 'natives-linux' : null;
+    }
   }
   return null;
 }
