@@ -35,7 +35,7 @@ const offlineUuid = (name: string) => {
 const AccountPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const { updatePrefs } = useLaunchPrefs();
+  const { update: updatePrefs } = useLaunchPrefs();
 
   const [accounts, setAccounts] = useState<McAccount[]>([]);
   const [loading, setLoading] = useState(true);
