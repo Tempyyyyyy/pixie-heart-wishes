@@ -6,9 +6,9 @@
     {
       "mcVersionRange": ">=1.14.0 <=1.21.4",
       "loader": "fabric",
-      "url": "REPLACE_ME_WITH_YOUR_RELEASE_URL/pixie-heart-wishes-fabric-1.14-1.21.x.jar",
-      "sha1": "REPLACE_ME_SHA1",
-      "filename": "pixie-heart-wishes.jar"
+      "url": "https://github.com/Tempyyyyyy/pixie-heart-wishes/releases/download/pixie-mod-v1.0.0/pixiestape-client-1.0.0.jar",
+      "sha1": "fee3cf37f70c058187dec836bee69ca0f8f7fdaa",
+      "filename": "pixiestape-client-1.0.0.jar"
     }
   ]
 }
