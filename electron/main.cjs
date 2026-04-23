@@ -148,9 +148,16 @@ function isLibraryAllowed(lib) {
   const platform =
     process.platform === 'win32' ? 'windows' :
     process.platform === 'darwin' ? 'osx' : 'linux';
+  const arch = process.arch === 'x64' ? 'x64' : 'x86';
+
   for (const rule of lib.rules) {
     const matchesOs = !rule.os || rule.os.name === platform;
-    if (matchesOs) allowed = rule.action === 'allow';
+    // Если в правиле указана архитектура, и она не совпадает с нашей - отсекаем
+    const matchesArch = !rule.os || !rule.os.arch || rule.os.arch === (arch === 'x64' ? 'x86_64' : 'x86');
+    
+    if (matchesOs && matchesArch) {
+      allowed = rule.action === 'allow';
+    }
   }
   return allowed;
 }
@@ -170,10 +177,15 @@ function getNativeClassifier(lib) {
   if (lib.downloads && lib.downloads.classifiers) {
     const cls = lib.downloads.classifiers;
     if (platform === 'windows') {
-      if (arch === 'x64' && cls['natives-windows-x86_64']) return 'natives-windows-x86_64';
-      if (arch === 'x64' && cls['natives-windows-64']) return 'natives-windows-64';
+      if (arch === 'x64') {
+        // Жесткий приоритет 64-битным версиям
+        if (cls['natives-windows-x86_64']) return 'natives-windows-x86_64';
+        if (cls['natives-windows-64']) return 'natives-windows-64';
+        if (cls['natives-windows-x64']) return 'natives-windows-x64';
+      }
       return cls['natives-windows'] ? 'natives-windows' : null;
     }
+    // ... остальное для других ОС по аналогии, если нужно ...
     if (platform === 'osx') {
       if (arch === 'x64' && cls['natives-macos-x86_64']) return 'natives-macos-x86_64';
       return cls['natives-macos'] ? 'natives-macos' : null;
