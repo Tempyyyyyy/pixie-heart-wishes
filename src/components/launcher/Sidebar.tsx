@@ -22,6 +22,7 @@ const bottomItems = [
   { to: "/servers", label: "Серверы", icon: Server },
   { to: "/skins", label: "Скины", icon: Shirt },
   { to: "/news", label: "Новости", icon: Newspaper },
+  { to: "/account", label: "Аккаунт", icon: UserCircle2 },
   { to: "/profile", label: "Профиль", icon: User },
 ];
 
