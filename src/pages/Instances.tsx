@@ -26,7 +26,13 @@ type Instance = {
   mods: ModInInstance[];
 };
 
-const VERSIONS = ["1.21.1", "1.21", "1.20.4", "1.20.1", "1.19.4", "1.19.2", "1.18.2", "1.16.5"];
+const VERSIONS = [
+  "1.21.4", "1.21.3", "1.21.2", "1.21.1", "1.21", 
+  "1.20.6", "1.20.4", "1.20.2", "1.20.1", "1.20",
+  "1.19.4", "1.19.3", "1.19.2", "1.19.1", "1.19",
+  "1.18.2", "1.18.1", "1.17.1", "1.16.5", "1.15.2", "1.14.4",
+  "1.12.2", "1.11.2", "1.10.2", "1.9.4", "1.8.9", "1.7.10"
+];
 const LOADERS = ["fabric", "forge", "neoforge", "quilt"];
 
 const InstancesPage = () => {
@@ -39,7 +45,7 @@ const InstancesPage = () => {
   // Create / edit instance
   const [editing, setEditing] = useState<Instance | null>(null);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", mc_version: "1.21.1", loader: "fabric" });
+  const [form, setForm] = useState({ name: "", description: "", mc_version: "1.21.4", loader: "fabric" });
 
   // Mod manager
   const [managingId, setManagingId] = useState<string | null>(null);
@@ -72,7 +78,7 @@ const InstancesPage = () => {
   }, [search, pickerFor]);
 
   const openCreate = () => {
-    setForm({ name: "", description: "", mc_version: "1.21.1", loader: "fabric" });
+    setForm({ name: "", description: "", mc_version: "1.21.4", loader: "fabric" });
     setEditing(null);
     setCreating(true);
   };

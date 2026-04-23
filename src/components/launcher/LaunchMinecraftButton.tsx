@@ -32,7 +32,7 @@ declare global {
 }
 
 export const LaunchMinecraftButton = ({
-  version = "1.20.1",
+  version = "1.21.4",
   loader = "vanilla",
   loaderVersion,
   instanceId,
