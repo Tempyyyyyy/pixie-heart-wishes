@@ -150,10 +150,13 @@ function isLibraryAllowed(lib) {
     process.platform === 'darwin' ? 'osx' : 'linux';
   const arch = process.arch === 'x64' ? 'x64' : 'x86';
 
-  // Жесткий фильтр по имени: если мы на x64, игнорируем всё, что явно помечено как x86/i386
+  // Жесткий фильтр по имени: если мы на x64, игнорируем всё, что явно помечено как x86/i386 или ARM
   if (arch === 'x64') {
     const name = lib.name || "";
-    if ((name.includes('x86') || name.includes('i386') || name.includes('32')) && !name.includes('x86_64')) {
+    const isArm = name.includes('arm') || name.includes('aarch64');
+    const isX86 = (name.includes('x86') || name.includes('i386') || name.includes('32')) && !name.includes('x86_64');
+    
+    if (isArm || isX86) {
       return false;
     }
   }
