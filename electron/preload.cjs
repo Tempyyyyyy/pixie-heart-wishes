@@ -4,8 +4,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isElectron: true,
   launchMinecraft: (opts) => ipcRenderer.invoke('launch-minecraft', opts),
   installMrpack: (opts) => ipcRenderer.invoke('install-mrpack', opts),
+  installLocalMrpack: (opts) => ipcRenderer.invoke('install-local-mrpack', opts),
   downloadMod: (opts) => ipcRenderer.invoke('download-mod', opts),
   uploadModFile: (opts) => ipcRenderer.invoke('upload-mod-file', opts),
+  pickFile: (opts) => ipcRenderer.invoke('pick-file', opts),
   loginMicrosoft: () => ipcRenderer.invoke('login-microsoft'),
   stopMinecraft: (instanceId) => ipcRenderer.invoke('stop-minecraft', instanceId),
   onLaunchLog: (cb) => {

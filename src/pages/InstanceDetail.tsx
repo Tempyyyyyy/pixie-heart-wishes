@@ -14,9 +14,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Loader2, ImagePlus, Pencil, Trash2, Save, Plus, Package, Search,
-  Replace, X, Users, Download as DownloadIcon, Calendar, FileBox, Camera, Upload,
+  Replace, X, Users, Download as DownloadIcon, Calendar, FileBox, Camera, Upload, FileArchive,
 } from "lucide-react";
-import { type ModrinthHit, type ProjectType } from "@/lib/modrinth";
+import { type ModrinthHit, type ProjectType, searchProjects } from "@/lib/modrinth";
 import { ModrinthBrowser } from "@/components/launcher/ModrinthBrowser";
 import { LaunchMinecraftButton } from "@/components/launcher/LaunchMinecraftButton";
 
@@ -105,10 +105,12 @@ const InstanceDetailPage = () => {
     if (!pickerOpen) return;
     const t = setTimeout(() => {
       setSearching(true);
-      searchMods({ query: search, limit: 12, loader: instance?.loader }).then(d => setResults(d.hits)).finally(() => setSearching(false));
+      searchProjects({ query: search, projectType: browserType, limit: 12, loader: instance?.loader })
+        .then(d => setResults(d.hits))
+        .finally(() => setSearching(false));
     }, 300);
     return () => clearTimeout(t);
-  }, [search, pickerOpen, instance?.loader]);
+  }, [search, pickerOpen, instance?.loader, browserType]);
 
   useEffect(() => {
     const electron = (window as any).electronAPI;
@@ -186,16 +188,41 @@ const InstanceDetailPage = () => {
 
   const addMod = async (mod: ModrinthHit) => {
     if (!instance) return;
-    const newMod: ModInInstance = { id: mod.project_id, slug: mod.slug, name: mod.title, icon: mod.icon_url };
+    const newMod: ModInInstance = {
+      id: mod.project_id,
+      slug: mod.slug,
+      name: mod.title,
+      icon: mod.icon_url,
+      source: mod.project_type,
+    };
     let next: ModInInstance[];
     if (replaceModId) {
       next = instance.mods.map(m => m.id === replaceModId ? newMod : m);
-      toast({ title: "Мод заменён", description: mod.title });
     } else {
       if (instance.mods.some(m => m.id === newMod.id)) return toast({ title: "Уже добавлен" });
       next = [...instance.mods, newMod];
-      toast({ title: "Мод добавлен", description: mod.title });
     }
+
+    // Физически скачиваем файл в правильную папку (mods/resourcepacks/shaderpacks)
+    const electron = (window as any).electronAPI;
+    if (electron?.downloadMod) {
+      toast({ title: "Загрузка…", description: mod.title });
+      const res = await electron.downloadMod({
+        instanceId: instance.id,
+        projectId: mod.project_id,
+        slug: mod.slug,
+        mcVersion: instance.mc_version,
+        loader: instance.loader,
+        projectType: mod.project_type,
+      });
+      if (!res.ok) {
+        return toast({ title: "Не удалось скачать", description: res.error, variant: "destructive" });
+      }
+      toast({ title: replaceModId ? "Заменено" : "Установлено", description: `${mod.title} → ${res.folder}/` });
+    } else {
+      toast({ title: replaceModId ? "Заменено" : "Добавлено в список", description: "В десктопной версии файл скачается в папку игры" });
+    }
+
     await updateMods(next);
     setPickerOpen(false);
     setReplaceModId(null);
@@ -207,29 +234,64 @@ const InstanceDetailPage = () => {
     await updateMods(instance.mods.filter(m => m.id !== modId));
   };
 
-  const onUploadMod = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !instance) return;
+  const onUploadMod = async (kind: "mod" | "resourcepack" | "shader") => {
+    if (!instance) return;
     const electron = (window as any).electronAPI;
-    if (!electron) return toast({ title: "Только в десктопной версии" });
+    if (!electron?.pickFile) return toast({ title: "Только в десктопной версии" });
 
-    // В Electron мы получаем путь к файлу через input.files[0].path (нестандартно)
-    const filePath = (file as any).path;
-    if (!filePath) return toast({ title: "Не удалось получить путь к файлу" });
+    const filters = kind === "mod"
+      ? [{ name: "Моды (.jar)", extensions: ["jar"] }]
+      : [{ name: "Архивы (.zip)", extensions: ["zip"] }];
 
-    const res = await electron.uploadModFile({ instanceId: instance.id, filePath });
+    const picked = await electron.pickFile({ title: "Выберите файл", filters });
+    if (!picked.ok) {
+      if (picked.canceled) return;
+      return toast({ title: "Ошибка выбора файла", description: picked.error, variant: "destructive" });
+    }
+
+    const res = await electron.uploadModFile({ instanceId: instance.id, filePath: picked.filePath, kind });
     if (!res.ok) return toast({ title: "Ошибка", description: res.error, variant: "destructive" });
 
     const newMod: ModInInstance = {
       id: `local:${Date.now()}`,
       name: res.name,
       icon: null,
-      slug: res.filename
+      slug: res.filename,
+      source: kind,
     };
-
     await updateMods([...instance.mods, newMod]);
-    toast({ title: "Файл загружен", description: `${res.name} (папка ${res.folder})` });
-    if (modFileRef.current) modFileRef.current.value = "";
+    toast({ title: "Файл загружен", description: `${res.name} → ${res.folder}/` });
+  };
+
+  const onImportMrpack = async () => {
+    if (!instance) return;
+    const electron = (window as any).electronAPI;
+    if (!electron?.pickFile) return toast({ title: "Только в десктопной версии" });
+
+    const picked = await electron.pickFile({
+      title: "Выберите .mrpack",
+      filters: [{ name: "Modrinth модпак", extensions: ["mrpack"] }],
+    });
+    if (!picked.ok) {
+      if (picked.canceled) return;
+      return toast({ title: "Ошибка", description: picked.error, variant: "destructive" });
+    }
+
+    toast({ title: "Установка сборки…", description: "Загружаем моды из .mrpack" });
+    const res = await electron.installLocalMrpack({
+      instanceId: instance.id,
+      filePath: picked.filePath,
+      instanceName: instance.name,
+    });
+    if (!res.ok) return toast({ title: "Не удалось установить", description: res.error, variant: "destructive" });
+
+    // Обновляем инстанс с новой версией/лоадером и списком модов
+    const update: any = { mods: res.mods };
+    if (res.mc_version) update.mc_version = res.mc_version;
+    if (res.loader) update.loader = res.loader;
+    await supabase.from("instances").update(update).eq("id", instance.id);
+    setInstance(p => p ? { ...p, mods: res.mods, mc_version: res.mc_version || p.mc_version, loader: res.loader || p.loader } : p);
+    toast({ title: "Сборка установлена", description: res.message });
   };
 
   if (authLoading || loading) {
@@ -363,18 +425,29 @@ const InstanceDetailPage = () => {
               />
             </div>
             
-            <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
               {isOwner && (
                 <>
-                  <Button variant="hero" onClick={() => { setReplaceModId(null); setBrowserType("mod"); setPickerOpen(true); }} className="flex-1 md:flex-none rounded-xl">
+                  <Button variant="hero" onClick={() => { setReplaceModId(null); setBrowserType("mod"); setPickerOpen(true); }} className="rounded-xl">
                     <Plus className="w-4 h-4 mr-2" />
                     Обзор контента
                   </Button>
-                  <Button variant="outline" className="flex-1 md:flex-none rounded-xl" onClick={() => modFileRef.current?.click()}>
+                  <Button variant="outline" className="rounded-xl" onClick={() => onUploadMod("mod")} title="Загрузить .jar мод">
                     <Upload className="w-4 h-4 mr-2" />
-                    Загрузить свой файл
+                    Свой мод
                   </Button>
-                  <input ref={modFileRef} type="file" accept=".jar,.zip" className="hidden" onChange={onUploadMod} />
+                  <Button variant="outline" className="rounded-xl" onClick={() => onUploadMod("resourcepack")} title="Загрузить .zip ресурспак">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Ресурспак
+                  </Button>
+                  <Button variant="outline" className="rounded-xl" onClick={() => onUploadMod("shader")} title="Загрузить .zip шейдер">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Шейдер
+                  </Button>
+                  <Button variant="outline" className="rounded-xl" onClick={onImportMrpack} title="Импортировать .mrpack сборку">
+                    <FileArchive className="w-4 h-4 mr-2" />
+                    Импорт .mrpack
+                  </Button>
                 </>
               )}
             </div>

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, Menu, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { spawn, exec } = require('child_process');
 const DiscordRPC = require('discord-rpc');
@@ -726,35 +726,160 @@ ipcMain.handle('install-mrpack', async (_e, opts) => {
 //  Скачать конкретный мод из Modrinth для инстанса
 // ============================================================
 
+function folderForProjectType(pt) {
+  switch (pt) {
+    case 'resourcepack': return 'resourcepacks';
+    case 'shader': return 'shaderpacks';
+    case 'datapack': return 'datapacks';
+    case 'modpack': return 'mods';
+    default: return 'mods';
+  }
+}
+
 ipcMain.handle('download-mod', async (_e, opts) => {
   try {
-    const { instanceId, projectId, slug, mcVersion, loader } = opts;
+    const { instanceId, projectId, slug, mcVersion, loader, projectType } = opts;
     if (!instanceId || !projectId) return { ok: false, error: 'Нет instanceId/projectId' };
-    const modsDir = path.join(INSTANCES_DIR, instanceId, 'mods');
-    fs.mkdirSync(modsDir, { recursive: true });
+    const folder = folderForProjectType(projectType);
+    const destDir = path.join(INSTANCES_DIR, instanceId, folder);
+    fs.mkdirSync(destDir, { recursive: true });
 
     // Получаем версии мода
     const versions = await downloadJson(
       `https://api.modrinth.com/v2/project/${projectId}/version` +
       (mcVersion ? `?game_versions=["${mcVersion}"]` : '')
     );
-    // Фильтруем по лоадеру
+    // Фильтруем по лоадеру (только для модов/плагинов)
     let matching = versions;
-    if (loader) {
-      matching = versions.filter(v => v.loaders.includes(loader));
-      if (!matching.length) matching = versions;
+    if (loader && (!projectType || projectType === 'mod' || projectType === 'plugin')) {
+      const filtered = versions.filter(v => v.loaders.includes(loader));
+      if (filtered.length) matching = filtered;
     }
     if (!matching.length) return { ok: false, error: 'Нет совместимых версий' };
     const v = matching[0];
     const file = v.files.find(f => f.primary) || v.files[0];
     if (!file) return { ok: false, error: 'Нет файла' };
 
-    const dest = path.join(modsDir, file.filename);
-    log(`⇣ ${slug || projectId}: ${file.filename}`);
+    const dest = path.join(destDir, file.filename);
+    log(`⇣ ${slug || projectId} → ${folder}/${file.filename}`);
     await downloadFileWithSha1(file.url, dest, file.hashes && file.hashes.sha1);
-    return { ok: true, filename: file.filename, version: v.version_number };
+    return { ok: true, filename: file.filename, version: v.version_number, folder };
   } catch (e) {
     log('✖ download-mod: ' + e.message);
+    return { ok: false, error: e.message };
+  }
+});
+
+// ============================================================
+//  Выбор файла через системный диалог (надёжнее, чем file.path)
+// ============================================================
+ipcMain.handle('pick-file', async (_e, opts = {}) => {
+  try {
+    const filters = opts.filters || [
+      { name: 'Моды и сборки', extensions: ['jar', 'zip', 'mrpack'] },
+      { name: 'Все файлы', extensions: ['*'] },
+    ];
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: opts.title || 'Выберите файл',
+      properties: ['openFile'],
+      filters,
+    });
+    if (result.canceled || !result.filePaths.length) return { ok: false, canceled: true };
+    return { ok: true, filePath: result.filePaths[0] };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+// ============================================================
+//  Установка .mrpack из локального файла
+// ============================================================
+ipcMain.handle('install-local-mrpack', async (_e, { instanceId, filePath, instanceName }) => {
+  try {
+    if (!instanceId || !filePath) return { ok: false, error: 'Нет instanceId/filePath' };
+    if (!fs.existsSync(filePath)) return { ok: false, error: 'Файл не найден' };
+
+    log(`▶ Установка локальной сборки: ${instanceName || filePath}`);
+    const instDir = path.join(INSTANCES_DIR, instanceId);
+    fs.mkdirSync(instDir, { recursive: true });
+    fs.mkdirSync(path.join(instDir, 'mods'), { recursive: true });
+
+    const mrpackPath = path.join(instDir, 'pack.mrpack');
+    fs.copyFileSync(filePath, mrpackPath);
+
+    const entries = listZipEntries(mrpackPath);
+    const indexEntry = entries.find(e => e.name === 'modrinth.index.json');
+    if (!indexEntry) return { ok: false, error: '.mrpack не содержит modrinth.index.json' };
+
+    const index = JSON.parse(readZipEntry(indexEntry).toString('utf8'));
+    log(`✓ Манифест: ${index.name} v${index.versionId}`);
+
+    const mcVersion = index.dependencies['minecraft'];
+    let loader = 'fabric';
+    let loaderVersion;
+    if (index.dependencies['fabric-loader']) { loader = 'fabric'; loaderVersion = index.dependencies['fabric-loader']; }
+    else if (index.dependencies['forge']) { loader = 'forge'; loaderVersion = index.dependencies['forge']; }
+    else if (index.dependencies['neoforge']) { loader = 'neoforge'; loaderVersion = index.dependencies['neoforge']; }
+    else if (index.dependencies['quilt-loader']) { loader = 'quilt'; loaderVersion = index.dependencies['quilt-loader']; }
+
+    const installedMods = [];
+    let done = 0;
+    for (const f of (index.files || [])) {
+      const dest = path.join(instDir, f.path);
+      try {
+        await downloadFileWithSha1(f.downloads[0], dest, f.hashes && f.hashes.sha1);
+        done++;
+        if (f.path.startsWith('mods/')) {
+          const fname = path.basename(f.path);
+          installedMods.push({
+            id: `mrpack:${fname}`,
+            slug: fname.replace(/\.jar$/i, ''),
+            name: fname.replace(/\.jar$/i, '').replace(/[-_]/g, ' '),
+            icon: null,
+            file: fname,
+            source: 'mrpack',
+          });
+        }
+      } catch (e) {
+        log(`⚠ ${f.path}: ${e.message}`);
+      }
+    }
+
+    // overrides
+    for (const e of entries) {
+      if (e.name.startsWith('overrides/') || e.name.startsWith('client-overrides/')) {
+        if (e.name.endsWith('/')) continue;
+        const rel = e.name.replace(/^(client-)?overrides\//, '');
+        const out = path.join(instDir, rel);
+        try {
+          fs.mkdirSync(path.dirname(out), { recursive: true });
+          fs.writeFileSync(out, readZipEntry(e));
+          if (rel.startsWith('mods/') && rel.endsWith('.jar')) {
+            const fname = path.basename(rel);
+            if (!installedMods.find(m => m.file === fname)) {
+              installedMods.push({
+                id: `override:${fname}`,
+                slug: fname.replace(/\.jar$/i, ''),
+                name: fname.replace(/\.jar$/i, '').replace(/[-_]/g, ' '),
+                icon: null, file: fname, source: 'override',
+              });
+            }
+          }
+        } catch (err) { log('⚠ override ' + rel + ': ' + err.message); }
+      }
+    }
+
+    log(`✓ Локальная сборка установлена: ${done} файлов, ${installedMods.length} модов`);
+    return {
+      ok: true,
+      message: `Установлено ${installedMods.length} модов`,
+      mc_version: mcVersion,
+      loader,
+      loader_version: loaderVersion,
+      mods: installedMods,
+    };
+  } catch (e) {
+    log('✖ install-local-mrpack: ' + e.message);
     return { ok: false, error: e.message };
   }
 });
@@ -763,18 +888,22 @@ ipcMain.handle('download-mod', async (_e, opts) => {
 //  Загрузить свой файл мода в инстанс
 // ============================================================
 
-ipcMain.handle('upload-mod-file', async (_e, { instanceId, filePath }) => {
+ipcMain.handle('upload-mod-file', async (_e, { instanceId, filePath, kind }) => {
   try {
     if (!instanceId || !filePath) return { ok: false, error: 'Нет instanceId/filePath' };
+    if (!fs.existsSync(filePath)) return { ok: false, error: 'Файл не найден' };
     const ext = path.extname(filePath).toLowerCase();
-    
-    // Детекция папки
+
+    // Папка определяется явно (kind), иначе по расширению
     let folder = 'mods';
-    if (ext === '.zip') {
-      // Если в названии есть "shader" или это зипка не с модом - кладем в шейдеры/ресурсы
-      // Но проще всего спросить или просто класть в resourcepacks
-      folder = 'resourcepacks';
-      if (path.basename(filePath).toLowerCase().includes('shader')) folder = 'shaderpacks';
+    if (kind === 'resourcepack') folder = 'resourcepacks';
+    else if (kind === 'shader') folder = 'shaderpacks';
+    else if (kind === 'mod') folder = 'mods';
+    else if (ext === '.jar') folder = 'mods';
+    else if (ext === '.zip') {
+      const lower = path.basename(filePath).toLowerCase();
+      if (lower.includes('shader') || lower.includes('iris')) folder = 'shaderpacks';
+      else folder = 'resourcepacks';
     }
 
     const destDir = path.join(INSTANCES_DIR, instanceId, folder);
@@ -782,15 +911,15 @@ ipcMain.handle('upload-mod-file', async (_e, { instanceId, filePath }) => {
 
     const fileName = path.basename(filePath);
     const destPath = path.join(destDir, fileName);
-    
+
     log(`⇣ Загрузка файла в ${folder}: ${fileName}`);
     fs.copyFileSync(filePath, destPath);
 
-    return { 
-      ok: true, 
-      filename: fileName, 
+    return {
+      ok: true,
+      filename: fileName,
       name: fileName.replace(new RegExp(`\\${ext}$`, 'i'), '').replace(/[-_]/g, ' '),
-      folder
+      folder,
     };
   } catch (e) {
     log('✖ upload-file: ' + e.message);

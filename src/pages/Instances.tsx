@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Play, Trash2, Pencil, Package, Loader2, LogIn, Search, X, Replace, Layers, Calendar } from "lucide-react";
+import { Plus, Play, Trash2, Pencil, Package, Loader2, LogIn, Search, X, Replace, Layers, Calendar, FileArchive } from "lucide-react";
 import { searchMods, type ModrinthHit } from "@/lib/modrinth";
 import { AuthDialog } from "@/components/launcher/AuthDialog";
 import { LaunchMinecraftButton } from "@/components/launcher/LaunchMinecraftButton";
@@ -135,6 +135,59 @@ const InstancesPage = () => {
     void load();
   };
 
+  const importLocalMrpack = async () => {
+    if (!user) return toast({ title: "Войди, чтобы импортировать сборку" });
+    const electron = (window as any).electronAPI;
+    if (!electron?.pickFile) {
+      return toast({
+        title: "Только в десктопной версии",
+        description: "Импорт .mrpack работает в .exe лаунчере",
+        variant: "destructive",
+      });
+    }
+
+    const picked = await electron.pickFile({
+      title: "Выберите .mrpack сборку",
+      filters: [{ name: "Modrinth модпак", extensions: ["mrpack"] }],
+    });
+    if (!picked.ok) {
+      if (picked.canceled) return;
+      return toast({ title: "Ошибка", description: picked.error, variant: "destructive" });
+    }
+
+    // Имя сборки = имя файла без расширения
+    const fileName = picked.filePath.split(/[\\/]/).pop() || "Импортированная сборка";
+    const name = fileName.replace(/\.mrpack$/i, "").replace(/[-_]/g, " ");
+
+    // Создаём заготовку в БД
+    const { data: created, error: insErr } = await supabase
+      .from("instances")
+      .insert({ name, user_id: user.id, mc_version: "1.20.1", loader: "fabric", mods: [] })
+      .select()
+      .single();
+    if (insErr || !created) return toast({ title: "Ошибка", description: insErr?.message, variant: "destructive" });
+
+    toast({ title: "Установка сборки…", description: "Загружаем моды из .mrpack" });
+    const res = await electron.installLocalMrpack({
+      instanceId: created.id,
+      filePath: picked.filePath,
+      instanceName: name,
+    });
+    if (!res.ok) {
+      await supabase.from("instances").delete().eq("id", created.id);
+      return toast({ title: "Не удалось установить", description: res.error, variant: "destructive" });
+    }
+
+    await supabase.from("instances").update({
+      mods: res.mods,
+      mc_version: res.mc_version || created.mc_version,
+      loader: res.loader || created.loader,
+    }).eq("id", created.id);
+
+    toast({ title: "Сборка импортирована", description: res.message });
+    void load();
+  };
+
   const updateMods = async (instanceId: string, mods: ModInInstance[]) => {
     const { error } = await supabase.from("instances").update({ mods: mods as any }).eq("id", instanceId);
     if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
@@ -194,8 +247,10 @@ const InstancesPage = () => {
           <h1 className="font-display font-bold text-3xl md:text-4xl mb-2">Твои сборки</h1>
           <p className="text-muted-foreground">Создавай сборки и управляй модами как в Modrinth.</p>
         </div>
-        <div className="flex gap-2">
-          <LaunchMinecraftButton version="1.20.1" label="Тест запуска MC" />
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={importLocalMrpack}>
+            <FileArchive className="w-4 h-4 mr-1" />Импорт .mrpack
+          </Button>
           <Button variant="hero" onClick={openCreate}>
             <Plus className="w-4 h-4 mr-1" />Новая сборка
           </Button>
