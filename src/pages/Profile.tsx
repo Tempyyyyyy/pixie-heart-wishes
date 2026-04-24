@@ -250,7 +250,7 @@ const ProfilePage = () => {
 
       {/* === STATS === */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-fade-in">
-        <StatCard icon={Clock} value={formatHours(playtime.totalSeconds).replace(/[чм]/g, '')} label="Часов в игре" />
+        <StatCard icon={Clock} value={formatHours(playtime.totalSeconds)} label="Время в игре" />
         <StatCard icon={Download} value={totalMods} label="Модов в сборках" />
         <StatCard icon={Layers} value={instances.length} label="Сборок создано" />
         <StatCard icon={Trophy} value={`${profile?.achievements ?? 0}/120`} label="Достижений" />
