@@ -193,16 +193,20 @@ const ProfilePage = () => {
               : "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.6) 100%)",
           }}
         >
-          {/* edit banner overlay */}
-          <button
-            onClick={() => bannerRef.current?.click()}
-            disabled={uploadingBanner}
-            className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-background/70 backdrop-blur border border-border text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 hover:bg-background"
-          >
-            {uploadingBanner ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
-            Сменить баннер
-          </button>
-          <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={onBannerFile} />
+          {/* edit banner overlay (только владелец) */}
+          {isOwnProfile && (
+            <>
+              <button
+                onClick={() => bannerRef.current?.click()}
+                disabled={uploadingBanner}
+                className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-background/70 backdrop-blur border border-border text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 hover:bg-background"
+              >
+                {uploadingBanner ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
+                Сменить баннер
+              </button>
+              <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={onBannerFile} />
+            </>
+          )}
         </div>
 
         {/* Avatar + name + actions */}
