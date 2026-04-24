@@ -310,7 +310,9 @@ const ProfilePage = () => {
         <section className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
             <span className="font-display font-bold text-base">Витрина сборок</span>
-            <Link to="/instances" className="text-xs text-primary hover:underline">Управлять →</Link>
+            {isOwnProfile && (
+              <Link to="/instances" className="text-xs text-primary hover:underline">Управлять →</Link>
+            )}
           </div>
           {instances.length === 0 ? (
             <Link to="/instances" className="block p-6 rounded-xl border border-dashed border-border text-center hover:border-primary/50 transition-colors">
