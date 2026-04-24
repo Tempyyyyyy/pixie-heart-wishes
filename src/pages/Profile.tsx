@@ -44,8 +44,13 @@ type InstanceCard = {
 const ProfilePage = () => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const { id: routeId } = useParams<{ id?: string }>();
   const avatarRef = useRef<HTMLInputElement>(null);
   const bannerRef = useRef<HTMLInputElement>(null);
+
+  // Если в URL передан id и он != нашему — это публичный просмотр чужого профиля.
+  const viewedId = routeId ?? user?.id ?? null;
+  const isOwnProfile = !routeId || (user && routeId === user.id);
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [instances, setInstances] = useState<InstanceCard[]>([]);
@@ -65,10 +70,10 @@ const ProfilePage = () => {
   const totalMods = instances.reduce((sum, inst) => sum + (inst.mods?.length || 0), 0);
 
   useEffect(() => {
-    if (!user) return;
+    if (!viewedId) return;
     supabase.from("profiles")
       .select("display_name, avatar_url, banner_url, hours_played, mod_installs, achievements, favorite_mod_id, favorite_mod_name, favorite_mod_icon")
-      .eq("id", user.id)
+      .eq("id", viewedId)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
@@ -78,11 +83,11 @@ const ProfilePage = () => {
       });
     supabase.from("instances")
       .select("id, name, mc_version, loader, banner_url, icon_url")
-      .eq("user_id", user.id)
+      .eq("user_id", viewedId)
       .order("updated_at", { ascending: false })
       .limit(6)
       .then(({ data }) => setInstances((data as InstanceCard[]) ?? []));
-  }, [user]);
+  }, [viewedId]);
 
   const onAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
