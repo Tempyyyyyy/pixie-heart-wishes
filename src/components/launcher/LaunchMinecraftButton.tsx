@@ -25,7 +25,14 @@ declare global {
         instanceId: string;
         instanceName: string;
       }) => Promise<{ ok: boolean; error?: string; message?: string; mc_version?: string; loader?: string; loader_version?: string; mods?: Array<{ id: string; name: string; slug: string; icon: string | null; file?: string; source?: string }> }>;
-      downloadMod: (opts: { instanceId: string; projectId: string; slug?: string; mcVersion?: string; loader?: string }) => Promise<{ ok: boolean; error?: string; filename?: string }>;
+      installLocalMrpack: (opts: {
+        instanceId: string;
+        filePath: string;
+        instanceName?: string;
+      }) => Promise<{ ok: boolean; error?: string; message?: string; mc_version?: string; loader?: string; loader_version?: string; mods?: Array<{ id: string; name: string; slug: string; icon: string | null; file?: string; source?: string }> }>;
+      pickFile: (opts?: { title?: string; filters?: Array<{ name: string; extensions: string[] }> }) => Promise<{ ok: boolean; canceled?: boolean; filePath?: string; error?: string }>;
+      uploadModFile: (opts: { instanceId: string; filePath: string; kind?: "mod" | "resourcepack" | "shader" }) => Promise<{ ok: boolean; error?: string; filename?: string; name?: string; folder?: string }>;
+      downloadMod: (opts: { instanceId: string; projectId: string; slug?: string; mcVersion?: string; loader?: string; projectType?: string }) => Promise<{ ok: boolean; error?: string; filename?: string; folder?: string }>;
       onLaunchLog: (cb: (msg: string) => void) => () => void;
       onSessionStarted: (cb: (data: { instanceId: string }) => void) => () => void;
       onSessionEnded: (cb: (data: { instanceId: string | null; seconds: number }) => void) => () => void;
