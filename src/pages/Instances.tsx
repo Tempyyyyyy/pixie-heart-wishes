@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Play, Trash2, Pencil, Package, Loader2, LogIn, Search, X, Replace, Layers, Calendar } from "lucide-react";
+import { Plus, Play, Trash2, Pencil, Package, Loader2, LogIn, Search, X, Replace, Layers, Calendar, FileArchive } from "lucide-react";
 import { searchMods, type ModrinthHit } from "@/lib/modrinth";
 import { AuthDialog } from "@/components/launcher/AuthDialog";
 import { LaunchMinecraftButton } from "@/components/launcher/LaunchMinecraftButton";
@@ -194,8 +194,10 @@ const InstancesPage = () => {
           <h1 className="font-display font-bold text-3xl md:text-4xl mb-2">Твои сборки</h1>
           <p className="text-muted-foreground">Создавай сборки и управляй модами как в Modrinth.</p>
         </div>
-        <div className="flex gap-2">
-          <LaunchMinecraftButton version="1.20.1" label="Тест запуска MC" />
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={importLocalMrpack}>
+            <FileArchive className="w-4 h-4 mr-1" />Импорт .mrpack
+          </Button>
           <Button variant="hero" onClick={openCreate}>
             <Plus className="w-4 h-4 mr-1" />Новая сборка
           </Button>
