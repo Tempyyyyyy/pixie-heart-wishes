@@ -232,7 +232,7 @@ const ProfilePage = () => {
 
           <div className="flex-1 min-w-0 md:pb-2">
             <div className="flex items-center gap-2 flex-wrap">
-              {editingName ? (
+              {editingName && isOwnProfile ? (
                 <div className="flex gap-2 items-center">
                   <Input value={name} onChange={e => setName(e.target.value)} maxLength={32} className="text-2xl font-display font-bold h-10 max-w-xs" autoFocus />
                   <Button size="sm" onClick={saveName} disabled={savingName || !name.trim()}>
@@ -243,21 +243,25 @@ const ProfilePage = () => {
               ) : (
                 <>
                   <h1 className="font-display font-bold text-2xl md:text-3xl truncate">{profile?.display_name || "Без имени"}</h1>
-                  <button onClick={() => setEditingName(true)} className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground" aria-label="Изменить">
-                    <Pencil className="w-4 h-4" />
-                  </button>
+                  {isOwnProfile && (
+                    <button onClick={() => setEditingName(true)} className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground" aria-label="Изменить">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  )}
                 </>
               )}
             </div>
             <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_hsl(var(--primary))]" />
-              Online · {user.email}
+              {isOwnProfile ? `Online · ${user?.email ?? ""}` : "Профиль игрока"}
             </p>
           </div>
 
           <div className="flex gap-2 md:pb-2 shrink-0">
             <Button variant="outline" onClick={onShare}><Share2 className="w-4 h-4 mr-1.5" />Поделиться</Button>
-            <Button variant="hero" onClick={() => setSettingsOpen(true)}><Settings className="w-4 h-4 mr-1.5" />Настройки</Button>
+            {isOwnProfile && (
+              <Button variant="hero" onClick={() => setSettingsOpen(true)}><Settings className="w-4 h-4 mr-1.5" />Настройки</Button>
+            )}
           </div>
         </div>
       </section>
