@@ -14,7 +14,7 @@ import { searchMods, type ModrinthHit } from "@/lib/modrinth";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AuthDialog } from "@/components/launcher/AuthDialog";
 import { SettingsDialog } from "@/components/launcher/SettingsDialog";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { usePlaytime, formatHours } from "@/lib/launchSettings";
 import { ModrinthBrowser } from "@/components/launcher/ModrinthBrowser";
 import { FriendsPanel } from "@/components/launcher/FriendsPanel";
@@ -44,8 +44,13 @@ type InstanceCard = {
 const ProfilePage = () => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const { id: routeId } = useParams<{ id?: string }>();
   const avatarRef = useRef<HTMLInputElement>(null);
   const bannerRef = useRef<HTMLInputElement>(null);
+
+  // Если в URL передан id и он != нашему — это публичный просмотр чужого профиля.
+  const viewedId = routeId ?? user?.id ?? null;
+  const isOwnProfile = !routeId || (user && routeId === user.id);
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [instances, setInstances] = useState<InstanceCard[]>([]);
@@ -65,10 +70,10 @@ const ProfilePage = () => {
   const totalMods = instances.reduce((sum, inst) => sum + (inst.mods?.length || 0), 0);
 
   useEffect(() => {
-    if (!user) return;
+    if (!viewedId) return;
     supabase.from("profiles")
       .select("display_name, avatar_url, banner_url, hours_played, mod_installs, achievements, favorite_mod_id, favorite_mod_name, favorite_mod_icon")
-      .eq("id", user.id)
+      .eq("id", viewedId)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
@@ -78,11 +83,11 @@ const ProfilePage = () => {
       });
     supabase.from("instances")
       .select("id, name, mc_version, loader, banner_url, icon_url")
-      .eq("user_id", user.id)
+      .eq("user_id", viewedId)
       .order("updated_at", { ascending: false })
       .limit(6)
       .then(({ data }) => setInstances((data as InstanceCard[]) ?? []));
-  }, [user]);
+  }, [viewedId]);
 
   const onAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -154,7 +159,8 @@ const ProfilePage = () => {
     return <Layout><div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></Layout>;
   }
 
-  if (!user) {
+  // Гейт авторизации только для собственного профиля
+  if (!user && !routeId) {
     return (
       <Layout>
         <div className="max-w-md mx-auto text-center py-20 animate-fade-in">
@@ -187,16 +193,20 @@ const ProfilePage = () => {
               : "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.6) 100%)",
           }}
         >
-          {/* edit banner overlay */}
-          <button
-            onClick={() => bannerRef.current?.click()}
-            disabled={uploadingBanner}
-            className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-background/70 backdrop-blur border border-border text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 hover:bg-background"
-          >
-            {uploadingBanner ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
-            Сменить баннер
-          </button>
-          <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={onBannerFile} />
+          {/* edit banner overlay (только владелец) */}
+          {isOwnProfile && (
+            <>
+              <button
+                onClick={() => bannerRef.current?.click()}
+                disabled={uploadingBanner}
+                className="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-background/70 backdrop-blur border border-border text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 hover:bg-background"
+              >
+                {uploadingBanner ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
+                Сменить баннер
+              </button>
+              <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={onBannerFile} />
+            </>
+          )}
         </div>
 
         {/* Avatar + name + actions */}
@@ -206,19 +216,23 @@ const ProfilePage = () => {
               {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.display_name ?? ""} className="object-cover" />}
               <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-display font-bold rounded-2xl">{initials}</AvatarFallback>
             </Avatar>
-            <button
-              onClick={() => avatarRef.current?.click()}
-              disabled={uploadingAvatar}
-              className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity"
-            >
-              {uploadingAvatar ? <Loader2 className="w-6 h-6 animate-spin text-white" /> : <Camera className="w-6 h-6 text-white" />}
-            </button>
-            <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={onAvatarFile} />
+            {isOwnProfile && (
+              <>
+                <button
+                  onClick={() => avatarRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity"
+                >
+                  {uploadingAvatar ? <Loader2 className="w-6 h-6 animate-spin text-white" /> : <Camera className="w-6 h-6 text-white" />}
+                </button>
+                <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={onAvatarFile} />
+              </>
+            )}
           </div>
 
           <div className="flex-1 min-w-0 md:pb-2">
             <div className="flex items-center gap-2 flex-wrap">
-              {editingName ? (
+              {editingName && isOwnProfile ? (
                 <div className="flex gap-2 items-center">
                   <Input value={name} onChange={e => setName(e.target.value)} maxLength={32} className="text-2xl font-display font-bold h-10 max-w-xs" autoFocus />
                   <Button size="sm" onClick={saveName} disabled={savingName || !name.trim()}>
@@ -229,28 +243,32 @@ const ProfilePage = () => {
               ) : (
                 <>
                   <h1 className="font-display font-bold text-2xl md:text-3xl truncate">{profile?.display_name || "Без имени"}</h1>
-                  <button onClick={() => setEditingName(true)} className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground" aria-label="Изменить">
-                    <Pencil className="w-4 h-4" />
-                  </button>
+                  {isOwnProfile && (
+                    <button onClick={() => setEditingName(true)} className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground" aria-label="Изменить">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  )}
                 </>
               )}
             </div>
             <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_hsl(var(--primary))]" />
-              Online · {user.email}
+              {isOwnProfile ? `Online · ${user?.email ?? ""}` : "Профиль игрока"}
             </p>
           </div>
 
           <div className="flex gap-2 md:pb-2 shrink-0">
             <Button variant="outline" onClick={onShare}><Share2 className="w-4 h-4 mr-1.5" />Поделиться</Button>
-            <Button variant="hero" onClick={() => setSettingsOpen(true)}><Settings className="w-4 h-4 mr-1.5" />Настройки</Button>
+            {isOwnProfile && (
+              <Button variant="hero" onClick={() => setSettingsOpen(true)}><Settings className="w-4 h-4 mr-1.5" />Настройки</Button>
+            )}
           </div>
         </div>
       </section>
 
       {/* === STATS === */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-fade-in">
-        <StatCard icon={Clock} value={formatHours(playtime.totalSeconds).replace(/[чм]/g, '')} label="Часов в игре" />
+        <StatCard icon={Clock} value={formatHours(playtime.totalSeconds)} label="Время в игре" />
         <StatCard icon={Download} value={totalMods} label="Модов в сборках" />
         <StatCard icon={Layers} value={instances.length} label="Сборок создано" />
         <StatCard icon={Trophy} value={`${profile?.achievements ?? 0}/120`} label="Достижений" />
@@ -264,7 +282,9 @@ const ProfilePage = () => {
             <span className="text-xs uppercase tracking-wider font-semibold text-primary flex items-center gap-1.5">
               <Heart className="w-3.5 h-3.5 fill-primary" />Любимый мод
             </span>
-            <button onClick={() => setPickerOpen(true)} className="text-xs text-muted-foreground hover:text-foreground">Изменить</button>
+            {isOwnProfile && (
+              <button onClick={() => setPickerOpen(true)} className="text-xs text-muted-foreground hover:text-foreground">Изменить</button>
+            )}
           </div>
           {profile?.favorite_mod_id ? (
             <div className="flex items-center gap-4">
@@ -290,7 +310,9 @@ const ProfilePage = () => {
         <section className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
             <span className="font-display font-bold text-base">Витрина сборок</span>
-            <Link to="/instances" className="text-xs text-primary hover:underline">Управлять →</Link>
+            {isOwnProfile && (
+              <Link to="/instances" className="text-xs text-primary hover:underline">Управлять →</Link>
+            )}
           </div>
           {instances.length === 0 ? (
             <Link to="/instances" className="block p-6 rounded-xl border border-dashed border-border text-center hover:border-primary/50 transition-colors">
@@ -325,10 +347,12 @@ const ProfilePage = () => {
         </section>
       </div>
 
-      {/* === FRIENDS === */}
-      <div className="pb-8">
-        <FriendsPanel />
-      </div>
+      {/* === FRIENDS (только владелец) === */}
+      {isOwnProfile && (
+        <div className="pb-8">
+          <FriendsPanel />
+        </div>
+      )}
 
       {/* Mod picker */}
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>

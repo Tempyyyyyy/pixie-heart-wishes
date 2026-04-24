@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings as SettingsIcon, Volume2, Monitor, Cpu, Languages, User } from "lucide-react";
-import { useLaunchPrefs, useTheme, THEME_PRESETS, CustomTheme } from "@/lib/launchSettings";
+import { Settings as SettingsIcon, Volume2, Monitor, Cpu, Languages, User, RotateCcw, Clock } from "lucide-react";
+import { useLaunchPrefs, useTheme, THEME_PRESETS, CustomTheme, resetPlaytime, usePlaytime, formatHours } from "@/lib/launchSettings";
+import { useToast } from "@/hooks/use-toast";
 
 type Settings = {
   language: "ru" | "en";
@@ -51,12 +52,20 @@ export const SettingsDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
   const { settings, update } = useSettings();
   const { prefs, update: updatePrefs } = useLaunchPrefs();
   const { theme, update: updateTheme } = useTheme();
+  const { toast } = useToast();
+  const playtime = usePlaytime();
   const [nickDraft, setNickDraft] = useState(prefs.username);
 
   useEffect(() => { setNickDraft(prefs.username); }, [prefs.username, open]);
 
   const saveNick = () => {
     updatePrefs({ username: nickDraft });
+  };
+
+  const onResetPlaytime = () => {
+    if (!confirm("Сбросить статистику времени в игре? Это действие нельзя отменить.")) return;
+    resetPlaytime();
+    toast({ title: "Статистика сброшена", description: "Время в игре обнулено." });
   };
 
   return (
@@ -141,6 +150,12 @@ export const SettingsDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
               onChange={(v) => update({ betaFeatures: v })}
             />
           </div>
+
+          <Section icon={Clock} title={`Статистика времени: ${formatHours(playtime.totalSeconds)}`} description="Если в профиле показывается неверное время — сбрось статистику.">
+            <Button variant="outline" size="sm" onClick={onResetPlaytime}>
+              <RotateCcw className="w-3.5 h-3.5 mr-1.5" />Сбросить статистику игры
+            </Button>
+          </Section>
         </div>
 
         <div className="flex justify-end gap-2">

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users, UserPlus, Check, X, Loader2, Search, Inbox, Send } from "lucide-react";
+import { Link } from "react-router-dom";
 
 type FriendProfile = {
   id: string;
@@ -275,18 +276,24 @@ const FriendList = ({ entries, tab, onAccept, onRemove }: {
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-72 overflow-y-auto">
       {entries.map(e => (
         <div key={e.rowId} className="flex items-center gap-3 p-2.5 rounded-lg bg-secondary/30 border border-border hover:border-primary/30 transition-colors">
-          <Avatar className="w-10 h-10 rounded-lg shrink-0">
-            {e.profile.avatar_url && <AvatarImage src={e.profile.avatar_url} className="object-cover" />}
-            <AvatarFallback className="rounded-lg bg-primary/20 text-xs">
-              {(e.profile.display_name || "?").slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold truncate">{e.profile.display_name || "Без имени"}</div>
-            <div className="text-[11px] text-muted-foreground">
-              {e.status === "accepted" ? "Друг" : e.direction === "incoming" ? "Хочет добавить" : "Заявка ожидает"}
+          <Link
+            to={`/profile/${e.profile.id}`}
+            className="flex items-center gap-3 flex-1 min-w-0 group"
+            title="Открыть профиль"
+          >
+            <Avatar className="w-10 h-10 rounded-lg shrink-0">
+              {e.profile.avatar_url && <AvatarImage src={e.profile.avatar_url} className="object-cover" />}
+              <AvatarFallback className="rounded-lg bg-primary/20 text-xs">
+                {(e.profile.display_name || "?").slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold truncate group-hover:text-primary transition-colors">{e.profile.display_name || "Без имени"}</div>
+              <div className="text-[11px] text-muted-foreground">
+                {e.status === "accepted" ? "Друг — открыть профиль" : e.direction === "incoming" ? "Хочет добавить" : "Заявка ожидает"}
+              </div>
             </div>
-          </div>
+          </Link>
           <div className="flex gap-1 shrink-0">
             {tab === "incoming" && (
               <Button size="icon" variant="hero" className="h-8 w-8" onClick={() => onAccept(e.rowId)} aria-label="Принять">

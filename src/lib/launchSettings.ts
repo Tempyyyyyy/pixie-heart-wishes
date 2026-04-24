@@ -202,15 +202,36 @@ export function getPlaytime(): Playtime {
   return { totalSeconds: 0, byInstance: {} };
 }
 
+// Anti-dup guard: один и тот же session-ended иногда приходит дважды
+// (StrictMode регистрирует listener дважды; Electron в редких кейсах эмитит повторно).
+let _lastPlaytimeKey = "";
+let _lastPlaytimeAt = 0;
+
+const MAX_SESSION_SECONDS = 24 * 3600; // 24 часа на одну сессию максимум
+
 export function addPlaytime(seconds: number, instanceId?: string | null) {
   if (!seconds || seconds < 5) return; // игнорируем «крашнулось мгновенно»
+  // Дедупликация: одинаковая сессия в пределах 3 сек = дубликат
+  const key = `${instanceId || "_"}:${seconds}`;
+  const now = Date.now();
+  if (key === _lastPlaytimeKey && now - _lastPlaytimeAt < 3000) return;
+  _lastPlaytimeKey = key;
+  _lastPlaytimeAt = now;
+
+  const safeSeconds = Math.min(seconds, MAX_SESSION_SECONDS);
   const cur = getPlaytime();
-  cur.totalSeconds += seconds;
+  cur.totalSeconds += safeSeconds;
   if (instanceId) {
-    cur.byInstance[instanceId] = (cur.byInstance[instanceId] || 0) + seconds;
+    cur.byInstance[instanceId] = (cur.byInstance[instanceId] || 0) + safeSeconds;
   }
   localStorage.setItem(PLAYTIME_KEY, JSON.stringify(cur));
   window.dispatchEvent(new CustomEvent("pixiestape:playtime-changed", { detail: cur }));
+}
+
+export function resetPlaytime() {
+  const empty: Playtime = { totalSeconds: 0, byInstance: {} };
+  localStorage.setItem(PLAYTIME_KEY, JSON.stringify(empty));
+  window.dispatchEvent(new CustomEvent("pixiestape:playtime-changed", { detail: empty }));
 }
 
 export function usePlaytime() {
@@ -227,9 +248,10 @@ export function usePlaytime() {
 }
 
 export function formatHours(seconds: number): string {
-  if (seconds < 60) return `${seconds}с`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}м`;
-  const hours = (seconds / 3600).toFixed(1);
-  return `${hours}ч`;
+  if (!seconds || seconds < 60) return `${Math.max(0, Math.floor(seconds))}с`;
+  const totalMinutes = Math.floor(seconds / 60);
+  if (totalMinutes < 60) return `${totalMinutes}м`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes > 0 ? `${hours}ч ${minutes}м` : `${hours}ч`;
 }
