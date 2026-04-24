@@ -150,6 +150,12 @@ export const SettingsDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
               onChange={(v) => update({ betaFeatures: v })}
             />
           </div>
+
+          <Section icon={Clock} title={`Статистика времени: ${formatHours(playtime.totalSeconds)}`} description="Если в профиле показывается неверное время — сбрось статистику.">
+            <Button variant="outline" size="sm" onClick={onResetPlaytime}>
+              <RotateCcw className="w-3.5 h-3.5 mr-1.5" />Сбросить статистику игры
+            </Button>
+          </Section>
         </div>
 
         <div className="flex justify-end gap-2">
