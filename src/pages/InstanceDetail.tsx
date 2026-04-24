@@ -425,18 +425,29 @@ const InstanceDetailPage = () => {
               />
             </div>
             
-            <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
               {isOwner && (
                 <>
-                  <Button variant="hero" onClick={() => { setReplaceModId(null); setBrowserType("mod"); setPickerOpen(true); }} className="flex-1 md:flex-none rounded-xl">
+                  <Button variant="hero" onClick={() => { setReplaceModId(null); setBrowserType("mod"); setPickerOpen(true); }} className="rounded-xl">
                     <Plus className="w-4 h-4 mr-2" />
                     Обзор контента
                   </Button>
-                  <Button variant="outline" className="flex-1 md:flex-none rounded-xl" onClick={() => modFileRef.current?.click()}>
+                  <Button variant="outline" className="rounded-xl" onClick={() => onUploadMod("mod")} title="Загрузить .jar мод">
                     <Upload className="w-4 h-4 mr-2" />
-                    Загрузить свой файл
+                    Свой мод
                   </Button>
-                  <input ref={modFileRef} type="file" accept=".jar,.zip" className="hidden" onChange={onUploadMod} />
+                  <Button variant="outline" className="rounded-xl" onClick={() => onUploadMod("resourcepack")} title="Загрузить .zip ресурспак">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Ресурспак
+                  </Button>
+                  <Button variant="outline" className="rounded-xl" onClick={() => onUploadMod("shader")} title="Загрузить .zip шейдер">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Шейдер
+                  </Button>
+                  <Button variant="outline" className="rounded-xl" onClick={onImportMrpack} title="Импортировать .mrpack сборку">
+                    <FileArchive className="w-4 h-4 mr-2" />
+                    Импорт .mrpack
+                  </Button>
                 </>
               )}
             </div>
