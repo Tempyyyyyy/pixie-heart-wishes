@@ -248,9 +248,10 @@ export function usePlaytime() {
 }
 
 export function formatHours(seconds: number): string {
-  if (seconds < 60) return `${seconds}с`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}м`;
-  const hours = (seconds / 3600).toFixed(1);
-  return `${hours}ч`;
+  if (!seconds || seconds < 60) return `${Math.max(0, Math.floor(seconds))}с`;
+  const totalMinutes = Math.floor(seconds / 60);
+  if (totalMinutes < 60) return `${totalMinutes}м`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes > 0 ? `${hours}ч ${minutes}м` : `${hours}ч`;
 }
