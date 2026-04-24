@@ -159,7 +159,8 @@ const ProfilePage = () => {
     return <Layout><div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></Layout>;
   }
 
-  if (!user) {
+  // Гейт авторизации только для собственного профиля
+  if (!user && !routeId) {
     return (
       <Layout>
         <div className="max-w-md mx-auto text-center py-20 animate-fade-in">
