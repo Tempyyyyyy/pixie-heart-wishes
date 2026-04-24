@@ -74,6 +74,46 @@ export const FriendsPanel = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase.channel('friend-requests')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'friendships',
+          filter: `addressee_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('New friend request:', payload.new);
+          const newRequest = payload.new as FriendshipRow;
+          supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('id', newRequest.requester_id)
+            .single()
+            .then(({ data, error }) => {
+              if (error) {
+                console.error(error);
+                return;
+              }
+              toast({
+                title: 'Новая заявка в друзья',
+                description: `От ${data.display_name}`,
+              });
+              load();
+            });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, toast, load]);
+
   const friends = entries.filter(e => e.status === "accepted");
   const incoming = entries.filter(e => e.status === "pending" && e.direction === "incoming");
   const outgoing = entries.filter(e => e.status === "pending" && e.direction === "outgoing");
