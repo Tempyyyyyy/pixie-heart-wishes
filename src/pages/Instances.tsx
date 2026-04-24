@@ -135,6 +135,59 @@ const InstancesPage = () => {
     void load();
   };
 
+  const importLocalMrpack = async () => {
+    if (!user) return toast({ title: "Войди, чтобы импортировать сборку" });
+    const electron = (window as any).electronAPI;
+    if (!electron?.pickFile) {
+      return toast({
+        title: "Только в десктопной версии",
+        description: "Импорт .mrpack работает в .exe лаунчере",
+        variant: "destructive",
+      });
+    }
+
+    const picked = await electron.pickFile({
+      title: "Выберите .mrpack сборку",
+      filters: [{ name: "Modrinth модпак", extensions: ["mrpack"] }],
+    });
+    if (!picked.ok) {
+      if (picked.canceled) return;
+      return toast({ title: "Ошибка", description: picked.error, variant: "destructive" });
+    }
+
+    // Имя сборки = имя файла без расширения
+    const fileName = picked.filePath.split(/[\\/]/).pop() || "Импортированная сборка";
+    const name = fileName.replace(/\.mrpack$/i, "").replace(/[-_]/g, " ");
+
+    // Создаём заготовку в БД
+    const { data: created, error: insErr } = await supabase
+      .from("instances")
+      .insert({ name, user_id: user.id, mc_version: "1.20.1", loader: "fabric", mods: [] })
+      .select()
+      .single();
+    if (insErr || !created) return toast({ title: "Ошибка", description: insErr?.message, variant: "destructive" });
+
+    toast({ title: "Установка сборки…", description: "Загружаем моды из .mrpack" });
+    const res = await electron.installLocalMrpack({
+      instanceId: created.id,
+      filePath: picked.filePath,
+      instanceName: name,
+    });
+    if (!res.ok) {
+      await supabase.from("instances").delete().eq("id", created.id);
+      return toast({ title: "Не удалось установить", description: res.error, variant: "destructive" });
+    }
+
+    await supabase.from("instances").update({
+      mods: res.mods,
+      mc_version: res.mc_version || created.mc_version,
+      loader: res.loader || created.loader,
+    }).eq("id", created.id);
+
+    toast({ title: "Сборка импортирована", description: res.message });
+    void load();
+  };
+
   const updateMods = async (instanceId: string, mods: ModInInstance[]) => {
     const { error } = await supabase.from("instances").update({ mods: mods as any }).eq("id", instanceId);
     if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
