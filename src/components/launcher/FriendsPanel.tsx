@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users, UserPlus, Check, X, Loader2, Search, Inbox, Send } from "lucide-react";
+import { Link } from "react-router-dom";
 
 type FriendProfile = {
   id: string;
