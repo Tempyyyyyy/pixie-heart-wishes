@@ -282,7 +282,9 @@ const ProfilePage = () => {
             <span className="text-xs uppercase tracking-wider font-semibold text-primary flex items-center gap-1.5">
               <Heart className="w-3.5 h-3.5 fill-primary" />Любимый мод
             </span>
-            <button onClick={() => setPickerOpen(true)} className="text-xs text-muted-foreground hover:text-foreground">Изменить</button>
+            {isOwnProfile && (
+              <button onClick={() => setPickerOpen(true)} className="text-xs text-muted-foreground hover:text-foreground">Изменить</button>
+            )}
           </div>
           {profile?.favorite_mod_id ? (
             <div className="flex items-center gap-4">
