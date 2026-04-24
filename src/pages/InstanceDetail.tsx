@@ -188,16 +188,41 @@ const InstanceDetailPage = () => {
 
   const addMod = async (mod: ModrinthHit) => {
     if (!instance) return;
-    const newMod: ModInInstance = { id: mod.project_id, slug: mod.slug, name: mod.title, icon: mod.icon_url };
+    const newMod: ModInInstance = {
+      id: mod.project_id,
+      slug: mod.slug,
+      name: mod.title,
+      icon: mod.icon_url,
+      source: mod.project_type,
+    };
     let next: ModInInstance[];
     if (replaceModId) {
       next = instance.mods.map(m => m.id === replaceModId ? newMod : m);
-      toast({ title: "Мод заменён", description: mod.title });
     } else {
       if (instance.mods.some(m => m.id === newMod.id)) return toast({ title: "Уже добавлен" });
       next = [...instance.mods, newMod];
-      toast({ title: "Мод добавлен", description: mod.title });
     }
+
+    // Физически скачиваем файл в правильную папку (mods/resourcepacks/shaderpacks)
+    const electron = (window as any).electronAPI;
+    if (electron?.downloadMod) {
+      toast({ title: "Загрузка…", description: mod.title });
+      const res = await electron.downloadMod({
+        instanceId: instance.id,
+        projectId: mod.project_id,
+        slug: mod.slug,
+        mcVersion: instance.mc_version,
+        loader: instance.loader,
+        projectType: mod.project_type,
+      });
+      if (!res.ok) {
+        return toast({ title: "Не удалось скачать", description: res.error, variant: "destructive" });
+      }
+      toast({ title: replaceModId ? "Заменено" : "Установлено", description: `${mod.title} → ${res.folder}/` });
+    } else {
+      toast({ title: replaceModId ? "Заменено" : "Добавлено в список", description: "В десктопной версии файл скачается в папку игры" });
+    }
+
     await updateMods(next);
     setPickerOpen(false);
     setReplaceModId(null);
@@ -209,29 +234,64 @@ const InstanceDetailPage = () => {
     await updateMods(instance.mods.filter(m => m.id !== modId));
   };
 
-  const onUploadMod = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !instance) return;
+  const onUploadMod = async (kind: "mod" | "resourcepack" | "shader") => {
+    if (!instance) return;
     const electron = (window as any).electronAPI;
-    if (!electron) return toast({ title: "Только в десктопной версии" });
+    if (!electron?.pickFile) return toast({ title: "Только в десктопной версии" });
 
-    // В Electron мы получаем путь к файлу через input.files[0].path (нестандартно)
-    const filePath = (file as any).path;
-    if (!filePath) return toast({ title: "Не удалось получить путь к файлу" });
+    const filters = kind === "mod"
+      ? [{ name: "Моды (.jar)", extensions: ["jar"] }]
+      : [{ name: "Архивы (.zip)", extensions: ["zip"] }];
 
-    const res = await electron.uploadModFile({ instanceId: instance.id, filePath });
+    const picked = await electron.pickFile({ title: "Выберите файл", filters });
+    if (!picked.ok) {
+      if (picked.canceled) return;
+      return toast({ title: "Ошибка выбора файла", description: picked.error, variant: "destructive" });
+    }
+
+    const res = await electron.uploadModFile({ instanceId: instance.id, filePath: picked.filePath, kind });
     if (!res.ok) return toast({ title: "Ошибка", description: res.error, variant: "destructive" });
 
     const newMod: ModInInstance = {
       id: `local:${Date.now()}`,
       name: res.name,
       icon: null,
-      slug: res.filename
+      slug: res.filename,
+      source: kind,
     };
-
     await updateMods([...instance.mods, newMod]);
-    toast({ title: "Файл загружен", description: `${res.name} (папка ${res.folder})` });
-    if (modFileRef.current) modFileRef.current.value = "";
+    toast({ title: "Файл загружен", description: `${res.name} → ${res.folder}/` });
+  };
+
+  const onImportMrpack = async () => {
+    if (!instance) return;
+    const electron = (window as any).electronAPI;
+    if (!electron?.pickFile) return toast({ title: "Только в десктопной версии" });
+
+    const picked = await electron.pickFile({
+      title: "Выберите .mrpack",
+      filters: [{ name: "Modrinth модпак", extensions: ["mrpack"] }],
+    });
+    if (!picked.ok) {
+      if (picked.canceled) return;
+      return toast({ title: "Ошибка", description: picked.error, variant: "destructive" });
+    }
+
+    toast({ title: "Установка сборки…", description: "Загружаем моды из .mrpack" });
+    const res = await electron.installLocalMrpack({
+      instanceId: instance.id,
+      filePath: picked.filePath,
+      instanceName: instance.name,
+    });
+    if (!res.ok) return toast({ title: "Не удалось установить", description: res.error, variant: "destructive" });
+
+    // Обновляем инстанс с новой версией/лоадером и списком модов
+    const update: any = { mods: res.mods };
+    if (res.mc_version) update.mc_version = res.mc_version;
+    if (res.loader) update.loader = res.loader;
+    await supabase.from("instances").update(update).eq("id", instance.id);
+    setInstance(p => p ? { ...p, mods: res.mods, mc_version: res.mc_version || p.mc_version, loader: res.loader || p.loader } : p);
+    toast({ title: "Сборка установлена", description: res.message });
   };
 
   if (authLoading || loading) {
