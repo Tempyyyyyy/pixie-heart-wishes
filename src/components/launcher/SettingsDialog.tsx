@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings as SettingsIcon, Volume2, Monitor, Cpu, Languages, User } from "lucide-react";
-import { useLaunchPrefs, useTheme, THEME_PRESETS, CustomTheme } from "@/lib/launchSettings";
+import { Settings as SettingsIcon, Volume2, Monitor, Cpu, Languages, User, RotateCcw, Clock } from "lucide-react";
+import { useLaunchPrefs, useTheme, THEME_PRESETS, CustomTheme, resetPlaytime, usePlaytime, formatHours } from "@/lib/launchSettings";
+import { useToast } from "@/hooks/use-toast";
 
 type Settings = {
   language: "ru" | "en";
