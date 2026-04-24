@@ -345,10 +345,12 @@ const ProfilePage = () => {
         </section>
       </div>
 
-      {/* === FRIENDS === */}
-      <div className="pb-8">
-        <FriendsPanel />
-      </div>
+      {/* === FRIENDS (только владелец) === */}
+      {isOwnProfile && (
+        <div className="pb-8">
+          <FriendsPanel />
+        </div>
+      )}
 
       {/* Mod picker */}
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
