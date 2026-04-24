@@ -14,9 +14,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Loader2, ImagePlus, Pencil, Trash2, Save, Plus, Package, Search,
-  Replace, X, Users, Download as DownloadIcon, Calendar, FileBox, Camera, Upload,
+  Replace, X, Users, Download as DownloadIcon, Calendar, FileBox, Camera, Upload, FileArchive,
 } from "lucide-react";
-import { type ModrinthHit, type ProjectType } from "@/lib/modrinth";
+import { type ModrinthHit, type ProjectType, searchProjects } from "@/lib/modrinth";
 import { ModrinthBrowser } from "@/components/launcher/ModrinthBrowser";
 import { LaunchMinecraftButton } from "@/components/launcher/LaunchMinecraftButton";
 
@@ -105,10 +105,12 @@ const InstanceDetailPage = () => {
     if (!pickerOpen) return;
     const t = setTimeout(() => {
       setSearching(true);
-      searchMods({ query: search, limit: 12, loader: instance?.loader }).then(d => setResults(d.hits)).finally(() => setSearching(false));
+      searchProjects({ query: search, projectType: browserType, limit: 12, loader: instance?.loader })
+        .then(d => setResults(d.hits))
+        .finally(() => setSearching(false));
     }, 300);
     return () => clearTimeout(t);
-  }, [search, pickerOpen, instance?.loader]);
+  }, [search, pickerOpen, instance?.loader, browserType]);
 
   useEffect(() => {
     const electron = (window as any).electronAPI;
