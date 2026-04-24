@@ -216,14 +216,18 @@ const ProfilePage = () => {
               {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.display_name ?? ""} className="object-cover" />}
               <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-display font-bold rounded-2xl">{initials}</AvatarFallback>
             </Avatar>
-            <button
-              onClick={() => avatarRef.current?.click()}
-              disabled={uploadingAvatar}
-              className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity"
-            >
-              {uploadingAvatar ? <Loader2 className="w-6 h-6 animate-spin text-white" /> : <Camera className="w-6 h-6 text-white" />}
-            </button>
-            <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={onAvatarFile} />
+            {isOwnProfile && (
+              <>
+                <button
+                  onClick={() => avatarRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="absolute inset-0 rounded-2xl bg-black/60 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity"
+                >
+                  {uploadingAvatar ? <Loader2 className="w-6 h-6 animate-spin text-white" /> : <Camera className="w-6 h-6 text-white" />}
+                </button>
+                <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={onAvatarFile} />
+              </>
+            )}
           </div>
 
           <div className="flex-1 min-w-0 md:pb-2">
