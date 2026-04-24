@@ -52,12 +52,20 @@ export const SettingsDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
   const { settings, update } = useSettings();
   const { prefs, update: updatePrefs } = useLaunchPrefs();
   const { theme, update: updateTheme } = useTheme();
+  const { toast } = useToast();
+  const playtime = usePlaytime();
   const [nickDraft, setNickDraft] = useState(prefs.username);
 
   useEffect(() => { setNickDraft(prefs.username); }, [prefs.username, open]);
 
   const saveNick = () => {
     updatePrefs({ username: nickDraft });
+  };
+
+  const onResetPlaytime = () => {
+    if (!confirm("Сбросить статистику времени в игре? Это действие нельзя отменить.")) return;
+    resetPlaytime();
+    toast({ title: "Статистика сброшена", description: "Время в игре обнулено." });
   };
 
   return (
