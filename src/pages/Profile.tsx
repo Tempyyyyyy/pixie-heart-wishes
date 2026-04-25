@@ -383,7 +383,7 @@ const ProfilePage = () => {
                 </div>
               ) : (
                 <>
-                  <h1 className="font-display font-bold text-2xl md:text-3xl truncate" style={{ color: profile?.display_name_color || undefined }}>{profile?.display_name || "Без имени"}</h1>
+                  <h1 className="font-display font-bold text-2xl md:text-3xl truncate">{profile?.display_name || "Без имени"}</h1>
                   {isOwnProfile && (
                     <button onClick={() => setEditingName(true)} className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground" aria-label="Изменить">
                       <Pencil className="w-4 h-4" />
@@ -392,29 +392,6 @@ const ProfilePage = () => {
                 </>
               )}
             </div>
-            {isOwnProfile && (
-              <div className="flex items-center gap-2 mt-2">
-                {editingColor ? (
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="color"
-                      value={nameColor}
-                      onChange={e => setNameColor(e.target.value)}
-                      className="w-8 h-8 rounded cursor-pointer border-0"
-                    />
-                    <Button size="sm" onClick={saveColor} disabled={savingColor}>
-                      {savingColor ? <Loader2 className="w-4 h-4 animate-spin" /> : "OK"}
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => { setEditingColor(false); setNameColor(profile?.display_name_color ?? "#ffffff"); }}>Отмена</Button>
-                  </div>
-                ) : (
-                  <button onClick={() => setEditingColor(true)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-                    <span className="w-4 h-4 rounded" style={{ backgroundColor: profile?.display_name_color || "#ffffff", border: "1px solid rgba(255,255,255,0.2)" }} />
-                    Изменить цвет ника
-                  </button>
-                )}
-              </div>
-            )}
             <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_hsl(var(--primary))]" />
               {isOwnProfile ? `Online · ${user?.email ?? ""}` : "Профиль игрока"}
@@ -424,9 +401,9 @@ const ProfilePage = () => {
           <div className="flex gap-2 md:pb-2 shrink-0">
             <Button variant="outline" onClick={onShare}><Share2 className="w-4 h-4 mr-1.5" />Поделиться</Button>
             {!isOwnProfile && user && (
-              <Button variant={hasLiked ? "hero" : "outline"} onClick={toggleLike}>
-                <Heart className={`w-4 h-4 mr-1.5 ${hasLiked ? "fill-current" : ""}`} />
-                {profile?.likes_count || 0}
+              <Button variant="outline" disabled>
+                <Heart className="w-4 h-4 mr-1.5" />
+                В разработке
               </Button>
             )}
             {isOwnProfile && (
@@ -527,53 +504,9 @@ const ProfilePage = () => {
       {/* === COMMENTS === */}
       <section className="rounded-2xl border border-border bg-card p-5 mb-6 animate-fade-in">
         <h2 className="font-display font-bold text-lg mb-4">Комментарии</h2>
-        
-        {/* Add comment form */}
-        {user && !isOwnProfile && (
-          <div className="mb-4">
-            <div className="flex gap-2">
-              <Input
-                value={newComment}
-                onChange={e => setNewComment(e.target.value)}
-                placeholder="Напиши комментарий..."
-                maxLength={500}
-                onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), submitComment())}
-              />
-              <Button onClick={submitComment} disabled={submittingComment || !newComment.trim()}>
-                {submittingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : "Отправить"}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Comments list */}
-        {loadingComments ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : comments.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            {user && !isOwnProfile ? "Будь первым, кто оставит комментарий!" : "Комментариев пока нет"}
-          </div>
-        ) : (
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {comments.map(comment => (
-              <div key={comment.id} className="p-3 rounded-lg bg-secondary/30 border border-border">
-                <div className="flex items-center gap-2 mb-2">
-                  <Avatar className="w-8 h-8">
-                    {comment.user_avatar_url && <AvatarImage src={comment.user_avatar_url} alt={comment.user_display_name} />}
-                    <AvatarFallback className="text-xs">{comment.user_display_name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <span className="font-semibold text-sm">{comment.user_display_name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(comment.created_at).toLocaleDateString('ru-RU')}
-                  </span>
-                </div>
-                <p className="text-sm text-foreground">{comment.content}</p>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="text-center py-8 text-muted-foreground">
+          В разработке
+        </div>
       </section>
 
       {/* Mod picker */}
