@@ -21,14 +21,26 @@ import { FriendsPanel } from "@/components/launcher/FriendsPanel";
 
 type Profile = {
   display_name: string | null;
+  display_name_color: string | null;
   avatar_url: string | null;
   banner_url: string | null;
   hours_played: number;
   mod_installs: number;
   achievements: number;
+  likes_count: number;
   favorite_mod_id: string | null;
   favorite_mod_name: string | null;
   favorite_mod_icon: string | null;
+};
+
+type Comment = {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  profile_id: string;
+  user_display_name: string;
+  user_avatar_url: string | null;
 };
 
 type InstanceCard = {
@@ -65,6 +77,14 @@ const ProfilePage = () => {
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<ModrinthHit[]>([]);
   const [searching, setSearching] = useState(false);
+  const [nameColor, setNameColor] = useState("#ffffff");
+  const [editingColor, setEditingColor] = useState(false);
+  const [savingColor, setSavingColor] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [hasLiked, setHasLiked] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(false);
 
   const playtime = usePlaytime();
   const totalMods = instances.reduce((sum, inst) => sum + (inst.mods?.length || 0), 0);
@@ -76,13 +96,14 @@ const ProfilePage = () => {
   useEffect(() => {
     if (!viewedId) return;
     supabase.from("profiles")
-      .select("display_name, avatar_url, banner_url, hours_played, mod_installs, achievements, favorite_mod_id, favorite_mod_name, favorite_mod_icon")
+      .select("display_name, display_name_color, avatar_url, banner_url, hours_played, mod_installs, achievements, likes_count, favorite_mod_id, favorite_mod_name, favorite_mod_icon")
       .eq("id", viewedId)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
           setProfile(data as Profile);
           setName(data.display_name ?? "");
+          setNameColor(data.display_name_color ?? "#ffffff");
         }
       });
     supabase.from("instances")
@@ -92,6 +113,47 @@ const ProfilePage = () => {
       .limit(6)
       .then(({ data }) => setInstances((data as InstanceCard[]) ?? []));
   }, [viewedId]);
+
+  // Load comments
+  useEffect(() => {
+    if (!viewedId) return;
+    setLoadingComments(true);
+    supabase
+      .from("profile_comments")
+      .select("*, profiles!profile_comments_user_id_fkey(display_name, avatar_url)")
+      .eq("profile_id", viewedId)
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        if (data) {
+          const commentsWithUsers = data.map((c: any) => ({
+            id: c.id,
+            content: c.content,
+            created_at: c.created_at,
+            user_id: c.user_id,
+            profile_id: c.profile_id,
+            user_display_name: c.profiles?.display_name || "Unknown",
+            user_avatar_url: c.profiles?.avatar_url,
+          }));
+          setComments(commentsWithUsers);
+        }
+        setLoadingComments(false);
+      });
+  }, [viewedId]);
+
+  // Check if current user has liked
+  useEffect(() => {
+    if (!user || !viewedId) return;
+    supabase
+      .from("profile_likes")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("profile_id", viewedId)
+      .maybeSingle()
+      .then(({ data }) => {
+        setHasLiked(!!data);
+      });
+  }, [user, viewedId]);
 
   // Синхронизация локального playtime в БД (только для своего профиля),
   // чтобы друзья видели актуальные часы.
@@ -148,6 +210,67 @@ const ProfilePage = () => {
     setProfile(p => p ? { ...p, display_name: name.trim() } : p);
     setEditingName(false);
     toast({ title: "Имя сохранено" });
+  };
+
+  const saveColor = async () => {
+    if (!user) return;
+    setSavingColor(true);
+    const { error } = await supabase.from("profiles").update({ display_name_color: nameColor }).eq("id", user.id);
+    setSavingColor(false);
+    if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    setProfile(p => p ? { ...p, display_name_color: nameColor } : p);
+    setEditingColor(false);
+    toast({ title: "Цвет сохранён" });
+  };
+
+  const toggleLike = async () => {
+    if (!user || !viewedId) return;
+    if (hasLiked) {
+      const { error } = await supabase.from("profile_likes").delete().eq("user_id", user.id).eq("profile_id", viewedId);
+      if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+      setHasLiked(false);
+      setProfile(p => p ? { ...p, likes_count: Math.max(0, p.likes_count - 1) } : p);
+    } else {
+      const { error } = await supabase.from("profile_likes").insert({ user_id: user.id, profile_id: viewedId });
+      if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+      setHasLiked(true);
+      setProfile(p => p ? { ...p, likes_count: p.likes_count + 1 } : p);
+    }
+  };
+
+  const submitComment = async () => {
+    if (!user || !viewedId || !newComment.trim()) return;
+    setSubmittingComment(true);
+    const { error } = await supabase.from("profile_comments").insert({
+      user_id: user.id,
+      profile_id: viewedId,
+      content: newComment.trim(),
+    });
+    setSubmittingComment(false);
+    if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    setNewComment("");
+    // Reload comments
+    supabase
+      .from("profile_comments")
+      .select("*, profiles!profile_comments_user_id_fkey(display_name, avatar_url)")
+      .eq("profile_id", viewedId)
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        if (data) {
+          const commentsWithUsers = data.map((c: any) => ({
+            id: c.id,
+            content: c.content,
+            created_at: c.created_at,
+            user_id: c.user_id,
+            profile_id: c.profile_id,
+            user_display_name: c.profiles?.display_name || "Unknown",
+            user_avatar_url: c.profiles?.avatar_url,
+          }));
+          setComments(commentsWithUsers);
+        }
+      });
+    toast({ title: "Комментарий добавлен" });
   };
 
   const setFavorite = async (mod: ModrinthHit) => {
@@ -260,7 +383,7 @@ const ProfilePage = () => {
                 </div>
               ) : (
                 <>
-                  <h1 className="font-display font-bold text-2xl md:text-3xl truncate">{profile?.display_name || "Без имени"}</h1>
+                  <h1 className="font-display font-bold text-2xl md:text-3xl truncate" style={{ color: profile?.display_name_color || undefined }}>{profile?.display_name || "Без имени"}</h1>
                   {isOwnProfile && (
                     <button onClick={() => setEditingName(true)} className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground" aria-label="Изменить">
                       <Pencil className="w-4 h-4" />
@@ -269,6 +392,29 @@ const ProfilePage = () => {
                 </>
               )}
             </div>
+            {isOwnProfile && (
+              <div className="flex items-center gap-2 mt-2">
+                {editingColor ? (
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      value={nameColor}
+                      onChange={e => setNameColor(e.target.value)}
+                      className="w-8 h-8 rounded cursor-pointer border-0"
+                    />
+                    <Button size="sm" onClick={saveColor} disabled={savingColor}>
+                      {savingColor ? <Loader2 className="w-4 h-4 animate-spin" /> : "OK"}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setEditingColor(false); setNameColor(profile?.display_name_color ?? "#ffffff"); }}>Отмена</Button>
+                  </div>
+                ) : (
+                  <button onClick={() => setEditingColor(true)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+                    <span className="w-4 h-4 rounded" style={{ backgroundColor: profile?.display_name_color || "#ffffff", border: "1px solid rgba(255,255,255,0.2)" }} />
+                    Изменить цвет ника
+                  </button>
+                )}
+              </div>
+            )}
             <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_hsl(var(--primary))]" />
               {isOwnProfile ? `Online · ${user?.email ?? ""}` : "Профиль игрока"}
@@ -277,6 +423,12 @@ const ProfilePage = () => {
 
           <div className="flex gap-2 md:pb-2 shrink-0">
             <Button variant="outline" onClick={onShare}><Share2 className="w-4 h-4 mr-1.5" />Поделиться</Button>
+            {!isOwnProfile && user && (
+              <Button variant={hasLiked ? "hero" : "outline"} onClick={toggleLike}>
+                <Heart className={`w-4 h-4 mr-1.5 ${hasLiked ? "fill-current" : ""}`} />
+                {profile?.likes_count || 0}
+              </Button>
+            )}
             {isOwnProfile && (
               <Button variant="hero" onClick={() => setSettingsOpen(true)}><Settings className="w-4 h-4 mr-1.5" />Настройки</Button>
             )}
@@ -371,6 +523,58 @@ const ProfilePage = () => {
           <FriendsPanel />
         </div>
       )}
+
+      {/* === COMMENTS === */}
+      <section className="rounded-2xl border border-border bg-card p-5 mb-6 animate-fade-in">
+        <h2 className="font-display font-bold text-lg mb-4">Комментарии</h2>
+        
+        {/* Add comment form */}
+        {user && !isOwnProfile && (
+          <div className="mb-4">
+            <div className="flex gap-2">
+              <Input
+                value={newComment}
+                onChange={e => setNewComment(e.target.value)}
+                placeholder="Напиши комментарий..."
+                maxLength={500}
+                onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), submitComment())}
+              />
+              <Button onClick={submitComment} disabled={submittingComment || !newComment.trim()}>
+                {submittingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : "Отправить"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Comments list */}
+        {loadingComments ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : comments.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            {user && !isOwnProfile ? "Будь первым, кто оставит комментарий!" : "Комментариев пока нет"}
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {comments.map(comment => (
+              <div key={comment.id} className="p-3 rounded-lg bg-secondary/30 border border-border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Avatar className="w-8 h-8">
+                    {comment.user_avatar_url && <AvatarImage src={comment.user_avatar_url} alt={comment.user_display_name} />}
+                    <AvatarFallback className="text-xs">{comment.user_display_name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-semibold text-sm">{comment.user_display_name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(comment.created_at).toLocaleDateString('ru-RU')}
+                  </span>
+                </div>
+                <p className="text-sm text-foreground">{comment.content}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Mod picker */}
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
