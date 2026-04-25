@@ -7,9 +7,13 @@ import { Layout } from "@/components/launcher/Layout";
 import { ModDetailDialog } from "@/components/launcher/ModDetailDialog";
 import { searchProjects, type ModrinthHit } from "@/lib/modrinth";
 import { useTheme, THEME_PRESETS } from "@/lib/launchSettings";
+import { createClient } from "@supabase/supabase-js";
 import heroBg from "@/assets/hero-bg.jpg";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 type NewsItem = {
   title: string;
@@ -20,11 +24,6 @@ type NewsItem = {
   source: string;
 };
 
-const stats = [
-  { icon: TrendingUp, value: "1 247", label: "Часов в игре" },
-  { icon: Package, value: "84", label: "Установлено модов" },
-  { icon: Users, value: "12", label: "Друзей онлайн" },
-];
 
 const formatNumber = (n: number) =>
   n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M`
@@ -38,6 +37,11 @@ const Index = () => {
   const [loadingPacks, setLoadingPacks] = useState(true);
   const [loadingNews, setLoadingNews] = useState(true);
   const [selected, setSelected] = useState<ModrinthHit | null>(null);
+  const [stats, setStats] = useState<{ icon: any; value: string; label: string }[]>([
+    { icon: TrendingUp, value: "0", label: "Часов в игре" },
+    { icon: Package, value: "0", label: "Установлено модов" },
+    { icon: Users, value: "0", label: "Друзей онлайн" },
+  ]);
 
   const { theme } = useTheme();
   const currentThemeName = theme.name.split(" ")[0];
@@ -60,6 +64,33 @@ const Index = () => {
       .then(d => setNews((d.items ?? []).slice(0, 6)))
       .catch(() => setNews([]))
       .finally(() => setLoadingNews(false));
+
+    // Fetch real stats
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Get user's hours played
+        const { data: profile } = await supabase.from("profiles").select("hours_played").eq("id", user.id).single();
+        const hours = profile?.hours_played ?? 0;
+        const hoursFormatted = Math.floor(hours / 3600);
+
+        // Get total mods installed across all instances
+        const { data: instances } = await supabase.from("instances").select("mods").eq("user_id", user.id);
+        const totalMods = instances?.reduce((sum, inst) => sum + (inst.mods?.length || 0), 0) ?? 0;
+
+        // Get friends count
+        const { count: friendsCount } = await supabase.from("friendships")
+          .select("*", { count: "exact", head: true })
+          .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+          .eq("status", "accepted");
+
+        setStats([
+          { icon: TrendingUp, value: String(hoursFormatted), label: "Часов в игре" },
+          { icon: Package, value: String(totalMods), label: "Установлено модов" },
+          { icon: Users, value: String(friendsCount ?? 0), label: "Друзей" },
+        ]);
+      }
+    })();
   }, []);
 
   return (
@@ -84,7 +115,7 @@ const Index = () => {
             </div>
 
             <h1 className="font-display font-bold text-3xl sm:text-4xl md:text-6xl lg:text-7xl leading-[1.05] mb-4 md:mb-6">
-              Твой <span className="gradient-text">агрессивный</span> лаунчер.
+              Твой <span className="gradient-text">кастомный</span> лаунчер.
               <br />
               Один клик — и ты в игре.
             </h1>
