@@ -174,7 +174,7 @@ const Skins = () => {
               <div className="text-[10px] text-muted-foreground self-start">#{(page - 1) * 60 + idx + 1}</div>
               <div className="aspect-[3/5] w-full flex items-center justify-center bg-gradient-to-b from-secondary/40 to-transparent rounded-xl overflow-hidden">
                 <img
-                  src={s.url}
+                  src={`https://mc-heads.net/skin/${s.id}`}
                   alt={`Skin ${s.id}`}
                   className="h-full object-contain group-hover:scale-110 transition-transform duration-300"
                   loading="lazy"
