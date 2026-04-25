@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Server, Copy, Check, Loader2, ExternalLink, Users } from "lucide-react";
+import { Search, Server, Copy, Check, Loader2, ExternalLink, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type NameMcServer = {
@@ -28,6 +28,8 @@ const Servers = () => {
   const [copied, setCopied] = useState<string | null>(null);
   const [servers, setServers] = useState<NameMcServer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 12;
 
   useEffect(() => {
     let cancelled = false;
@@ -52,6 +54,14 @@ const Servers = () => {
     return !q || s.name.toLowerCase().includes(q) || s.address.toLowerCase().includes(q) ||
       s.tags.some(t => t.includes(q));
   });
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginatedServers = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
 
   const copy = (addr: string) => {
     navigator.clipboard.writeText(addr);
@@ -81,7 +91,7 @@ const Servers = () => {
 
       {!loading && (
         <p className="text-sm text-muted-foreground mb-4">
-          Показано {filtered.length} из {servers.length} серверов
+          Показано {paginatedServers.length} из {filtered.length} серверов (страница {page} из {totalPages})
         </p>
       )}
 
@@ -91,68 +101,85 @@ const Servers = () => {
           Загружаем топ серверов и проверяем онлайн…
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-6">
-          {filtered.map((s) => (
-            <article
-              key={s.address}
-              className="group rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/50 hover:-translate-y-1 transition-all flex flex-col"
-            >
-              <div className="p-5 flex gap-4">
-                <div className="w-14 h-14 rounded-xl bg-secondary border border-border overflow-hidden shrink-0 flex items-center justify-center">
-                  {s.icon ? (
-                    <img
-                      src={s.icon}
-                      alt={s.name}
-                      className="w-12 h-12 object-contain"
-                      style={{ imageRendering: "pixelated" }}
-                      loading="lazy"
-                      onError={(e) => ((e.currentTarget.style.display = "none"))}
-                    />
-                  ) : (
-                    <Server className="w-6 h-6 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="secondary" className="text-[10px] shrink-0">
-                      #{s.rank}
-                    </Badge>
-                    <h3 className="font-display font-bold text-lg leading-tight truncate">{s.name}</h3>
+        <>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-6">
+            {paginatedServers.map((s) => (
+              <article
+                key={s.address}
+                className="group rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/50 hover:-translate-y-1 transition-all flex flex-col"
+              >
+                <div className="p-5 flex gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-secondary border border-border overflow-hidden shrink-0 flex items-center justify-center">
+                    {s.icon ? (
+                      <img
+                        src={s.icon}
+                        alt={s.name}
+                        className="w-12 h-12 object-contain"
+                        style={{ imageRendering: "pixelated" }}
+                        loading="lazy"
+                        onError={(e) => ((e.currentTarget.style.display = "none"))}
+                      />
+                    ) : (
+                      <Server className="w-6 h-6 text-muted-foreground" />
+                    )}
                   </div>
-                  <button
-                    onClick={() => copy(s.address)}
-                    className="flex items-center gap-1.5 text-xs font-mono text-primary hover:text-primary-glow transition-colors max-w-full"
-                  >
-                    {copied === s.address ? <Check className="w-3 h-3 shrink-0" /> : <Copy className="w-3 h-3 shrink-0" />}
-                    <span className="truncate">{s.address}</span>
-                  </button>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="secondary" className="text-[10px] shrink-0">
+                        #{s.rank}
+                      </Badge>
+                      <h3 className="font-display font-bold text-lg leading-tight truncate">{s.name}</h3>
+                    </div>
+                    <button
+                      onClick={() => copy(s.address)}
+                      className="flex items-center gap-1.5 text-xs font-mono text-primary hover:text-primary-glow transition-colors max-w-full"
+                    >
+                      {copied === s.address ? <Check className="w-3 h-3 shrink-0" /> : <Copy className="w-3 h-3 shrink-0" />}
+                      <span className="truncate">{s.address}</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-              {s.motd && (
-                <p className="px-5 text-xs text-muted-foreground line-clamp-2 mb-3">{s.motd}</p>
-              )}
-              <div className="px-5 pb-4 mt-auto flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-xs">
-                  {typeof s.online === "number" ? (
-                    <span className="flex items-center gap-1 text-primary font-semibold">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                      <Users className="w-3 h-3" />
-                      {s.online.toLocaleString()}{s.max ? ` / ${s.max.toLocaleString()}` : ""}
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-muted-foreground">
-                      <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
-                      Оффлайн
-                    </span>
-                  )}
+                {s.motd && (
+                  <p className="px-5 text-xs text-muted-foreground line-clamp-2 mb-3">{s.motd}</p>
+                )}
+                <div className="px-5 pb-4 mt-auto flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-xs">
+                    {typeof s.online === "number" ? (
+                      <span className="flex items-center gap-1 text-primary font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                        <Users className="w-3 h-3" />
+                        {s.online.toLocaleString()}{s.max ? ` / ${s.max.toLocaleString()}` : ""}
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
+                        Оффлайн
+                      </span>
+                    )}
+                  </div>
+                  <Button size="sm" variant="play" onClick={() => setOpen(s)}>
+                    Подробнее
+                  </Button>
                 </div>
-                <Button size="sm" variant="play" onClick={() => setOpen(s)}>
-                  Подробнее
-                </Button>
-              </div>
-            </article>
-          ))}
-        </div>
+              </article>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 pb-6">
+              <Button size="icon" variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="px-4 h-9 inline-flex items-center rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
+                Страница {page} из {totalPages}
+              </span>
+              <Button size="icon" variant="outline" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       {!loading && filtered.length === 0 && (
