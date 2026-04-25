@@ -108,7 +108,7 @@ export const ModDetailDialog = ({ mod, onOpenChange }: Props) => {
           toast({ title: "Модпак готов!", description: `${res.mods?.length ?? 0} модов установлено` });
         }
       } else {
-        toast({ title: "Сборка сохранена", description: "Открой в десктоп-лаунчере для установки модов" });
+        toast({ title: "Сборка сохранена", description: "Открой в десктопном PixieClient для установки модов" });
       }
 
       onOpenChange(false);

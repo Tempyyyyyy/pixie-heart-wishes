@@ -78,7 +78,7 @@ export const SettingsDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
             </div>
             <div>
               <DialogTitle className="font-display text-2xl">Настройки</DialogTitle>
-              <DialogDescription>Управляй лаунчером под себя</DialogDescription>
+              <DialogDescription>Управляй PixieClient под себя</DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -99,7 +99,7 @@ export const SettingsDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
             </Select>
           </Section>
 
-          <Section icon={Volume2} title={`Громкость лаунчера: ${settings.volume}%`}>
+          <Section icon={Volume2} title={`Громкость PixieClient: ${settings.volume}%`}>
             <Slider value={[settings.volume]} min={0} max={100} step={5} onValueChange={([v]) => update({ volume: v })} />
           </Section>
 
@@ -115,7 +115,7 @@ export const SettingsDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
             </Select>
           </Section>
 
-          <Section icon={SettingsIcon} title="Тема оформления" description="Выбери цвет лаунчера (сохраняется локально)">
+          <Section icon={SettingsIcon} title="Тема оформления" description="Выбери цвет PixieClient (сохраняется локально)">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {THEME_PRESETS.map((t) => (
                 <button
@@ -135,7 +135,7 @@ export const SettingsDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
 
           <div className="space-y-3 pt-2 border-t border-border">
             <ToggleRow
-              label="Закрывать лаунчер при запуске игры"
+              label="Закрывать PixieClient при запуске игры"
               value={settings.closeOnLaunch}
               onChange={(v) => update({ closeOnLaunch: v })}
             />

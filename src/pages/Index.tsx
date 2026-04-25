@@ -115,7 +115,7 @@ const Index = () => {
             </div>
 
             <h1 className="font-display font-bold text-3xl sm:text-4xl md:text-6xl lg:text-7xl leading-[1.05] mb-4 md:mb-6">
-              Твой <span className="gradient-text">кастомный</span> лаунчер.
+              Твой <span className="gradient-text">кастомный</span> PixieClient.
               <br />
               Один клик — и ты в игре.
             </h1>
@@ -137,7 +137,7 @@ const Index = () => {
                 <Button asChild variant="outline" size="lg" className="rounded-full bg-secondary/40 border-border hover:bg-secondary">
                   <a href="https://github.com/Tempyyyyyy/pixie-heart-wishes/releases/latest" target="_blank" rel="noopener noreferrer">
                     <Download className="w-4 h-4 mr-2" />
-                    Скачать лаунчер
+                    Скачать PixieClient
                   </a>
                 </Button>
               )}

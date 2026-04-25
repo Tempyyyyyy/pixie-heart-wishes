@@ -141,7 +141,7 @@ const InstancesPage = () => {
     if (!electron?.pickFile) {
       return toast({
         title: "Только в десктопной версии",
-        description: "Импорт .mrpack работает в .exe лаунчере",
+        description: "Импорт .mrpack работает в .exe PixieClient",
         variant: "destructive",
       });
     }

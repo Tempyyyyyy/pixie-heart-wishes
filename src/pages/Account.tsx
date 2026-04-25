@@ -293,7 +293,7 @@ const AccountPage = () => {
           <div className="w-20 h-20 rounded-2xl gradient-primary mx-auto mb-6 flex items-center justify-center glow-shadow">
             <Gamepad2 className="w-10 h-10 text-primary-foreground" />
           </div>
-          <h1 className="font-display font-bold text-3xl mb-3">Войди в лаунчер</h1>
+          <h1 className="font-display font-bold text-3xl mb-3">Войди в PixieClient</h1>
           <p className="text-muted-foreground mb-6">Чтобы привязать Minecraft аккаунты к твоему профилю.</p>
           <Button variant="hero" size="lg" onClick={() => setAuthOpen(true)}>
             <LogIn className="w-4 h-4 mr-1" />Войти / Регистрация

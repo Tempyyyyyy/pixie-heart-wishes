@@ -200,7 +200,7 @@ export const FriendsPanel = () => {
           </div>
           {searchResults.length === 0 ? (
             <div className="text-center text-sm text-muted-foreground py-6">
-              Введи имя другого игрока лаунчера
+              Введи имя другого игрока PixieClient
             </div>
           ) : (
             <div className="space-y-2 max-h-72 overflow-y-auto">

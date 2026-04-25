@@ -97,7 +97,7 @@ export const LaunchMinecraftButton = ({
     if (!window.electronAPI?.isElectron) {
       toast({
         title: "Доступно только в .exe",
-        description: "Запуск Minecraft работает в десктопной версии лаунчера, в браузере — нет.",
+        description: "Запуск Minecraft работает в десктопной версии PixieClient, в браузере — нет.",
         variant: "destructive",
       });
       return;
