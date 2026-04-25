@@ -63,6 +63,10 @@ const AccountPage = () => {
   const [skinDialog, setSkinDialog] = useState<McAccount | null>(null);
   const [uploadingSkin, setUploadingSkin] = useState(false);
   const skinInputRef = useRef<HTMLInputElement>(null);
+  // Импорт плащей с лиц. ника (для оффлайн-аккаунтов)
+  const [importNick, setImportNick] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importedCapes, setImportedCapes] = useState<{ id: string; name: string; image: string }[]>([]);
 
   const load = async () => {
     if (!user) return;
