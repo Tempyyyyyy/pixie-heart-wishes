@@ -594,33 +594,35 @@ const AccountPage = () => {
                     </div>
                   )}
 
-                  {/* Cape — для всех аккаунтов */}
-                  <div>
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Свой плащ (PNG)</Label>
-                    <input ref={capeInputRef} type="file" accept="image/png" className="hidden" onChange={onCapeFile} />
-                    <div className="flex gap-2 mt-1.5">
-                      <Button
-                        size="sm"
-                        variant="hero"
-                        className="flex-1"
-                        disabled={uploadingCape}
-                        onClick={() => capeInputRef.current?.click()}
-                      >
-                        {uploadingCape ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
-                        Загрузить
-                      </Button>
-                      {skinDialog.cape_url && (
-                        <Button size="sm" variant="outline" onClick={() => removeCape(skinDialog)}>
-                          <X className="w-3.5 h-3.5" />
+                  {/* Cape — только для Microsoft аккаунтов */}
+                  {skinDialog.account_type === "microsoft" && (
+                    <div>
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Свой плащ (PNG)</Label>
+                      <input ref={capeInputRef} type="file" accept="image/png" className="hidden" onChange={onCapeFile} />
+                      <div className="flex gap-2 mt-1.5">
+                        <Button
+                          size="sm"
+                          variant="hero"
+                          className="flex-1"
+                          disabled={uploadingCape}
+                          onClick={() => capeInputRef.current?.click()}
+                        >
+                          {uploadingCape ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+                          Загрузить
                         </Button>
-                      )}
+                        {skinDialog.cape_url && (
+                          <Button size="sm" variant="outline" onClick={() => removeCape(skinDialog)}>
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
               <div className="text-[11px] text-muted-foreground bg-secondary/40 rounded-lg p-3 border border-border">
-                💡 <b>Скины и плащи</b> можно загружать для всех аккаунтов. Для Microsoft-аккаунтов они будут отображаться только в этом лаунчере (на minecraft.net нужно менять отдельно).
+                💡 <b>Скины</b> можно загружать для всех аккаунтов. <b>Плащи</b> доступны только для лицензионных Microsoft-аккаунтов.
               </div>
             </>
           )}
