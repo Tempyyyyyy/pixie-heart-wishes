@@ -560,8 +560,74 @@ const AccountPage = () => {
                     </div>
                   )}
 
-                  {/* Cape — только для лицензионных аккаунтов */}
-                  {skinDialog.account_type === "microsoft" ? (
+                  {/* Cape — для оффлайн и лицензионных аккаунтов */}
+                  {skinDialog.account_type === "offline" ? (
+                    <>
+                      {/* Импорт плащей с лиц аккаунта */}
+                      <div>
+                        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                          Импорт плащей с лицензионного аккаунта
+                        </Label>
+                        <div className="flex gap-2 mt-1.5">
+                          <Input
+                            value={importNick}
+                            onChange={(e) => setImportNick(e.target.value)}
+                            placeholder="Ник лиц. игрока (например, Notch)"
+                            onKeyDown={(e) => e.key === "Enter" && importCapes()}
+                            className="h-9"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={importing || !importNick.trim()}
+                            onClick={importCapes}
+                          >
+                            {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                          </Button>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Подгружает плащи Mojang/Optifine/MinecraftCapes по нику.
+                        </p>
+                      </div>
+
+                      {/* Выбранные плащи */}
+                      {importedCapes.length > 0 && (
+                        <div>
+                          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Выбрать плащ</Label>
+                          <div className="grid grid-cols-4 gap-2 mt-1.5">
+                            <button
+                              onClick={() => setCape(skinDialog, null)}
+                              className={`aspect-[3/5] rounded-lg border-2 flex items-center justify-center text-[10px] text-muted-foreground transition-all ${
+                                !skinDialog.cape_url ? "border-primary bg-primary/10" : "border-border bg-secondary/30 hover:border-primary/40"
+                              }`}
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                            {importedCapes.map((c) => {
+                              const url = (c as any).image;
+                              return (
+                                <button
+                                  key={c.id}
+                                  onClick={() => setCape(skinDialog, url)}
+                                  title={c.name}
+                                  className={`aspect-[3/5] rounded-lg border-2 overflow-hidden transition-all ${
+                                    skinDialog.cape_url === url ? "border-primary" : "border-border hover:border-primary/40"
+                                  }`}
+                                >
+                                  <img
+                                    src={url}
+                                    alt={c.name}
+                                    className="w-full h-full object-cover"
+                                    style={{ imageRendering: "pixelated" }}
+                                  />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
                     <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
                       <div className="text-sm font-semibold mb-1 flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-primary" />
@@ -580,12 +646,12 @@ const AccountPage = () => {
                         . Здесь показывается то, что стоит у тебя сейчас.
                       </p>
                     </div>
-                  ) : null}
+                  )}
                 </div>
               </div>
 
               <div className="text-[11px] text-muted-foreground bg-secondary/40 rounded-lg p-3 border border-border">
-                💡 <b>Скины</b> можно загружать для оффлайн-аккаунтов. <b>Плащи</b> доступны только для лицензионных Microsoft-аккаунтов и загружаются автоматически с серверов Mojang.
+                💡 Для оффлайн-аккаунтов: загружай свои скины и импортируй плащи с лицензионных аккаунтов. Для Microsoft-аккаунтов скины и плащи загружаются автоматически с серверов Mojang.
               </div>
             </>
           )}
