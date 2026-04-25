@@ -319,7 +319,7 @@ const Skins = () => {
               </DialogHeader>
               <div className="flex justify-center py-4 bg-gradient-to-b from-primary/10 to-transparent rounded-xl">
                 <SkinViewer3D
-                  skinUrl={open.image}
+                  skinUrl={`https://s.namemc.com/i/${open.id}.png`}
                   width={240}
                   height={320}
                   rotate
@@ -342,7 +342,7 @@ const Skins = () => {
                         key={acc.id}
                         size="sm"
                         variant={acc.is_active ? "hero" : "outline"}
-                        onClick={() => applySkinToAccount(acc.id, open.image)}
+                        onClick={() => applySkinToAccount(acc.id, `https://s.namemc.com/i/${open.id}.png`)}
                         disabled={applying}
                         className="flex items-center gap-2"
                       >
