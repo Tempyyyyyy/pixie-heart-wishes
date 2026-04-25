@@ -320,7 +320,11 @@ const AccountPage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {accounts.map(acc => (
+            {accounts.map(acc => {
+              const previewSrc = acc.skin_url
+                ? `https://mc-heads.net/avatar/${encodeURIComponent(acc.skin_url)}/64`
+                : `https://mc-heads.net/avatar/${encodeURIComponent(acc.username)}/64`;
+              return (
               <div
                 key={acc.id}
                 className={`rounded-xl border p-4 transition-all ${
@@ -330,10 +334,9 @@ const AccountPage = () => {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  {/* Minecraft head avatar (Crafatar) */}
                   <div className="w-12 h-12 rounded-lg bg-secondary border border-border overflow-hidden shrink-0 image-render-pixel">
                     <img
-                      src={`https://mc-heads.net/avatar/${encodeURIComponent(acc.username)}/64`}
+                      src={previewSrc}
                       alt={acc.username}
                       className="w-full h-full"
                       style={{ imageRendering: "pixelated" as const }}
@@ -347,26 +350,37 @@ const AccountPage = () => {
                     </div>
                     <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
                       {acc.account_type === "offline" ? "Оффлайн" : "Microsoft"}
+                      {acc.skin_url && " · кастом-скин"}
+                      {acc.cape_url && " · плащ"}
                     </span>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-3">
+                <div className="flex gap-2 mt-3 flex-wrap">
                   {!acc.is_active && (
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setActive(acc)}>
-                      Сделать активным
+                    <Button size="sm" variant="outline" className="flex-1 min-w-0" onClick={() => setActive(acc)}>
+                      Активный
                     </Button>
                   )}
                   {acc.is_active && (
-                    <span className="flex-1 text-xs text-center py-1.5 px-2 rounded-md bg-primary/15 text-primary font-medium">
+                    <span className="flex-1 min-w-0 text-xs text-center py-1.5 px-2 rounded-md bg-primary/15 text-primary font-medium">
                       Активен
                     </span>
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 min-w-0"
+                    onClick={() => setSkinDialog(acc)}
+                  >
+                    <Shirt className="w-3.5 h-3.5 mr-1" />Скин
+                  </Button>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => remove(acc)}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
