@@ -214,6 +214,38 @@ const AccountPage = () => {
     load();
   };
 
+  // Импорт плащей с лицензионного аккаунта по нику (через capes.dev)
+  const importCapes = async () => {
+    const nick = importNick.trim();
+    if (!nick) return;
+    setImporting(true);
+    try {
+      const r = await fetch(
+        `https://iykuoicwycnmhkygqeqb.supabase.co/functions/v1/namemc?action=profile&username=${encodeURIComponent(nick)}`,
+      );
+      const d = await r.json();
+      const capes = d?.profile?.capes ?? [];
+      if (capes.length === 0) {
+        toast({ title: "Плащи не найдены", description: `У ${nick} нет плащей или ник не найден` });
+      } else {
+        setImportedCapes(capes);
+        toast({ title: `Загружено плащей: ${capes.length}`, description: `Игрок ${d.profile.username}` });
+      }
+    } catch {
+      toast({ title: "Ошибка импорта", variant: "destructive" });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  // Сброс импорта при смене аккаунта
+  useEffect(() => {
+    if (!skinDialog) {
+      setImportedCapes([]);
+      setImportNick("");
+    }
+  }, [skinDialog?.id]);
+
   if (authLoading) {
     return <Layout><div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></Layout>;
   }
