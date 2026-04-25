@@ -159,6 +159,55 @@ const AccountPage = () => {
     load();
   };
 
+  const onSkinFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user || !skinDialog) return;
+    if (!/\.png$/i.test(file.name)) {
+      return toast({ title: "Только PNG", description: "Скины Minecraft — это .png 64×64 или 64×32", variant: "destructive" });
+    }
+    if (file.size > 1024 * 1024) {
+      return toast({ title: "Файл слишком большой", description: "Максимум 1 МБ", variant: "destructive" });
+    }
+    setUploadingSkin(true);
+    const path = `${user.id}/${skinDialog.id}-${Date.now()}.png`;
+    const { error: upErr } = await supabase.storage.from("skins").upload(path, file, { upsert: true, contentType: "image/png" });
+    if (upErr) {
+      setUploadingSkin(false);
+      return toast({ title: "Ошибка загрузки", description: upErr.message, variant: "destructive" });
+    }
+    const { data: { publicUrl } } = supabase.storage.from("skins").getPublicUrl(path);
+    const { error: updErr } = await supabase.from("minecraft_accounts").update({ skin_url: publicUrl }).eq("id", skinDialog.id);
+    setUploadingSkin(false);
+    if (updErr) return toast({ title: "Ошибка БД", description: updErr.message, variant: "destructive" });
+    setSkinDialog(prev => prev ? { ...prev, skin_url: publicUrl } : prev);
+    toast({ title: "Скин загружен", description: "Будет применён при следующем запуске оффлайн-аккаунта" });
+    load();
+  };
+
+  const setSkinModel = async (acc: McAccount, model: "classic" | "slim") => {
+    const { error } = await supabase.from("minecraft_accounts").update({ skin_model: model }).eq("id", acc.id);
+    if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    setSkinDialog(prev => prev ? { ...prev, skin_model: model } : prev);
+    load();
+  };
+
+  const setCape = async (acc: McAccount, capeUrl: string | null) => {
+    const { error } = await supabase.from("minecraft_accounts").update({ cape_url: capeUrl }).eq("id", acc.id);
+    if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    setSkinDialog(prev => prev ? { ...prev, cape_url: capeUrl } : prev);
+    toast({ title: capeUrl ? "Плащ выбран" : "Плащ снят" });
+    load();
+  };
+
+  const removeSkin = async (acc: McAccount) => {
+    const { error } = await supabase.from("minecraft_accounts").update({ skin_url: null }).eq("id", acc.id);
+    if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    setSkinDialog(prev => prev ? { ...prev, skin_url: null } : prev);
+    toast({ title: "Скин сброшен" });
+    load();
+  };
+
   if (authLoading) {
     return <Layout><div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></Layout>;
   }
