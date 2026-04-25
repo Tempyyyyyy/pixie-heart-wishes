@@ -484,115 +484,163 @@ const AccountPage = () => {
                 </DialogTitle>
                 <DialogDescription>
                   {skinDialog.account_type === "microsoft"
-                    ? "Для Microsoft аккаунтов скин и плащ управляются Mojang. Здесь — только превью."
-                    : "Загрузи свой PNG (64×64) и выбери плащ. Применяется к оффлайн-аккаунту при запуске."}
+                    ? "Это лицензионный аккаунт — скин и плащ управляются Mojang. Здесь только просмотр."
+                    : "Загрузи свой PNG (64×64), выбери модель и плащ. Применяется к оффлайн-аккаунту при запуске."}
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="grid md:grid-cols-2 gap-5 py-2">
-                {/* Preview */}
-                <div className="rounded-xl border border-border bg-secondary/30 p-4 flex flex-col items-center justify-center">
-                  <img
-                    src={
-                      skinDialog.skin_url
-                        ? `https://mc-heads.net/body/${encodeURIComponent(skinDialog.skin_url)}/256`
-                        : `https://mc-heads.net/body/${encodeURIComponent(skinDialog.username)}/256`
+              <div className="grid md:grid-cols-[260px_1fr] gap-5 py-2">
+                {/* 3D Preview — крутится мышью */}
+                <div className="rounded-xl border border-border bg-secondary/30 p-3 flex flex-col items-center justify-center">
+                  <SkinViewer3D
+                    skinUrl={
+                      skinDialog.skin_url ||
+                      `https://mc-heads.net/skin/${encodeURIComponent(skinDialog.username)}`
                     }
-                    alt="preview"
-                    className="h-56 object-contain"
-                    style={{ imageRendering: "pixelated" }}
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = `https://mc-heads.net/body/MHF_Steve/256`;
-                    }}
+                    capeUrl={skinDialog.cape_url}
+                    model={skinDialog.skin_model === "slim" ? "slim" : "default"}
+                    width={220}
+                    height={300}
+                    rotate
                   />
-                  <div className="text-xs text-muted-foreground mt-2">
-                    {skinDialog.skin_url ? "Кастомный скин" : "Скин по нику"}
+                  <div className="text-[11px] text-muted-foreground mt-1 text-center">
+                    {skinDialog.skin_url ? "Кастомный скин" : "Скин по нику"} · перетащи для вращения
                   </div>
                 </div>
 
                 {/* Controls */}
                 <div className="space-y-4">
-                  {/* Upload skin */}
-                  <div>
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Свой скин (PNG)</Label>
-                    <input ref={skinInputRef} type="file" accept="image/png" className="hidden" onChange={onSkinFile} />
-                    <div className="flex gap-2 mt-1.5">
-                      <Button
-                        size="sm"
-                        variant="hero"
-                        className="flex-1"
-                        disabled={uploadingSkin || skinDialog.account_type === "microsoft"}
-                        onClick={() => skinInputRef.current?.click()}
-                      >
-                        {uploadingSkin ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
-                        Загрузить
-                      </Button>
-                      {skinDialog.skin_url && (
-                        <Button size="sm" variant="outline" onClick={() => removeSkin(skinDialog)}>
-                          <X className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Skin model */}
-                  <div>
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Модель</Label>
-                    <div className="flex gap-2 mt-1.5">
-                      <Button
-                        size="sm"
-                        variant={skinDialog.skin_model === "classic" ? "hero" : "outline"}
-                        className="flex-1"
-                        onClick={() => setSkinModel(skinDialog, "classic")}
-                      >
-                        Steve (4px)
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={skinDialog.skin_model === "slim" ? "hero" : "outline"}
-                        className="flex-1"
-                        onClick={() => setSkinModel(skinDialog, "slim")}
-                      >
-                        Alex (3px)
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Cape */}
-                  <div>
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                      Плащ {skinDialog.account_type === "microsoft" && "(только оффлайн)"}
-                    </Label>
-                    <div className="grid grid-cols-4 gap-2 mt-1.5">
-                      <button
-                        onClick={() => skinDialog.account_type === "offline" && setCape(skinDialog, null)}
-                        disabled={skinDialog.account_type === "microsoft"}
-                        className={`aspect-[3/5] rounded-lg border-2 flex items-center justify-center text-[10px] text-muted-foreground transition-all ${
-                          !skinDialog.cape_url ? "border-primary bg-primary/10" : "border-border bg-secondary/30 hover:border-primary/40"
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                      {CAPES.map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => skinDialog.account_type === "offline" && setCape(skinDialog, c.url)}
-                          disabled={skinDialog.account_type === "microsoft"}
-                          title={c.name}
-                          className={`aspect-[3/5] rounded-lg border-2 overflow-hidden transition-all ${
-                            skinDialog.cape_url === c.url ? "border-primary" : "border-border hover:border-primary/40"
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  {/* Upload skin — только оффлайн */}
+                  {skinDialog.account_type === "offline" && (
+                    <div>
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Свой скин (PNG)</Label>
+                      <input ref={skinInputRef} type="file" accept="image/png" className="hidden" onChange={onSkinFile} />
+                      <div className="flex gap-2 mt-1.5">
+                        <Button
+                          size="sm"
+                          variant="hero"
+                          className="flex-1"
+                          disabled={uploadingSkin}
+                          onClick={() => skinInputRef.current?.click()}
                         >
-                          <img
-                            src={c.url}
-                            alt={c.name}
-                            className="w-full h-full object-cover"
-                            style={{ imageRendering: "pixelated" }}
-                          />
-                        </button>
-                      ))}
+                          {uploadingSkin ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+                          Загрузить
+                        </Button>
+                        {skinDialog.skin_url && (
+                          <Button size="sm" variant="outline" onClick={() => removeSkin(skinDialog)}>
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Skin model — только оффлайн */}
+                  {skinDialog.account_type === "offline" && (
+                    <div>
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Модель</Label>
+                      <div className="flex gap-2 mt-1.5">
+                        <Button
+                          size="sm"
+                          variant={skinDialog.skin_model === "classic" ? "hero" : "outline"}
+                          className="flex-1"
+                          onClick={() => setSkinModel(skinDialog, "classic")}
+                        >
+                          Steve (4px)
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={skinDialog.skin_model === "slim" ? "hero" : "outline"}
+                          className="flex-1"
+                          onClick={() => setSkinModel(skinDialog, "slim")}
+                        >
+                          Alex (3px)
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cape — только оффлайн */}
+                  {skinDialog.account_type === "offline" ? (
+                    <>
+                      <div>
+                        <Label className="text-xs uppercase tracking-wider text-muted-foreground">Плащ</Label>
+                        <div className="grid grid-cols-4 gap-2 mt-1.5">
+                          <button
+                            onClick={() => setCape(skinDialog, null)}
+                            className={`aspect-[3/5] rounded-lg border-2 flex items-center justify-center text-[10px] text-muted-foreground transition-all ${
+                              !skinDialog.cape_url ? "border-primary bg-primary/10" : "border-border bg-secondary/30 hover:border-primary/40"
+                            }`}
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                          {[...CAPES, ...importedCapes].map((c) => (
+                            <button
+                              key={c.id}
+                              onClick={() => setCape(skinDialog, c.url || (c as any).image)}
+                              title={c.name}
+                              className={`aspect-[3/5] rounded-lg border-2 overflow-hidden transition-all ${
+                                skinDialog.cape_url === ((c as any).url || (c as any).image) ? "border-primary" : "border-border hover:border-primary/40"
+                              }`}
+                            >
+                              <img
+                                src={(c as any).url || (c as any).image}
+                                alt={c.name}
+                                className="w-full h-full object-cover"
+                                style={{ imageRendering: "pixelated" }}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Импорт плащей с лиц аккаунта */}
+                      <div>
+                        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                          Импорт плащей с лицензионного аккаунта
+                        </Label>
+                        <div className="flex gap-2 mt-1.5">
+                          <Input
+                            value={importNick}
+                            onChange={(e) => setImportNick(e.target.value)}
+                            placeholder="Ник лиц. игрока (например, Notch)"
+                            onKeyDown={(e) => e.key === "Enter" && importCapes()}
+                            className="h-9"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={importing || !importNick.trim()}
+                            onClick={importCapes}
+                          >
+                            {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                          </Button>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Подгружает плащи Mojang/Optifine/MinecraftCapes по нику.
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                      <div className="text-sm font-semibold mb-1 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                        Лицензионный аккаунт
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Скин и плащ для Microsoft-аккаунта меняются на{" "}
+                        <a
+                          href="https://www.minecraft.net/profile/skin"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary underline"
+                        >
+                          minecraft.net/profile/skin
+                        </a>
+                        . Здесь показывается то, что стоит у тебя сейчас.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
