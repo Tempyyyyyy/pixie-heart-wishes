@@ -977,7 +977,7 @@ function initRPC() {
     rpc.on('ready', () => {
       rpcReady = true;
       log('✓ Discord RPC готов');
-      setActivity('В лаунчере', 'Выбирает сборку');
+      setActivity('В PixieClient', 'Выбирает сборку');
     });
 
     rpc.on('disconnected', () => {
@@ -1306,7 +1306,7 @@ ipcMain.handle('launch-minecraft', async (_e, opts = {}) => {
       if (instanceId) activeProcesses.delete(instanceId);
       const seconds = Math.round((Date.now() - startedAt) / 1000);
       log(`◼ Minecraft завершился (код ${code}), сессия: ${seconds}с`);
-      setActivity('В лаунчере', 'Выбирает сборку');
+      setActivity('В PixieClient', 'Выбирает сборку');
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('mc-session-ended', {
           instanceId: instanceId || null,

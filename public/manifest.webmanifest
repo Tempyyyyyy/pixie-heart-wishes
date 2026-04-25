@@ -1,7 +1,7 @@
 {
   "name": "Pixiestape Launcher",
   "short_name": "Pixiestape",
-  "description": "Лаунчер Minecraft с модами Modrinth, профилем, скинами и новостями.",
+  "description": "PixieClient Minecraft с модами Modrinth, профилем, скинами и новостями.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
