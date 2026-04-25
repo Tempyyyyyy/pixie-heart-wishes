@@ -4,18 +4,22 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Server, Copy, Globe, Check, Loader2, ExternalLink } from "lucide-react";
+import { Search, Server, Copy, Check, Loader2, ExternalLink, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 type NameMcServer = {
   rank: number;
   name: string;
   address: string;
-  votes: number;
-  icon?: string;
+  icon?: string; // data:image/png;base64,...
   motd?: string;
+  online?: number;
+  max?: number;
+  version?: string;
+  tags: string[];
 };
+
+const NAMEMC_FN = "https://iykuoicwycnmhkygqeqb.supabase.co/functions/v1/namemc";
 
 const Servers = () => {
   const { toast } = useToast();
@@ -28,15 +32,7 @@ const Servers = () => {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    supabase.functions
-      .invoke("namemc", { method: "GET", body: undefined as any })
-      // edge fn parses query params, so we need explicit URL — fall back to fetch:
-      .then(() => {})
-      .catch(() => {});
-
-    // Direct fetch with query params (functions.invoke doesn't pass them well)
-    const url = `https://iykuoicwycnmhkygqeqb.supabase.co/functions/v1/namemc?action=servers`;
-    fetch(url)
+    fetch(`${NAMEMC_FN}?action=servers`)
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;
@@ -53,7 +49,8 @@ const Servers = () => {
 
   const filtered = servers.filter((s) => {
     const q = query.trim().toLowerCase();
-    return !q || s.name.toLowerCase().includes(q) || s.address.toLowerCase().includes(q);
+    return !q || s.name.toLowerCase().includes(q) || s.address.toLowerCase().includes(q) ||
+      s.tags.some(t => t.includes(q));
   });
 
   const copy = (addr: string) => {
@@ -68,37 +65,43 @@ const Servers = () => {
       <header className="mb-6 animate-fade-in">
         <h1 className="font-display font-bold text-3xl md:text-4xl mb-2">Серверы Minecraft</h1>
         <p className="text-muted-foreground">
-          Топ серверов с NameMC — обновляется автоматически. Кликни IP, чтобы скопировать.
+          Топ публичных серверов с живым онлайном и иконками. Кликни IP, чтобы скопировать.
         </p>
       </header>
 
-      <div className="relative mb-8">
+      <div className="relative mb-6">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Поиск по имени или IP"
+          placeholder="Поиск по имени, IP или категории (pvp, smp, skyblock…)"
           className="h-12 pl-11 rounded-xl bg-secondary/60"
         />
       </div>
 
+      {!loading && (
+        <p className="text-sm text-muted-foreground mb-4">
+          Показано {filtered.length} из {servers.length} серверов
+        </p>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
           <Loader2 className="w-6 h-6 animate-spin mr-2" />
-          Загружаем топ серверов с NameMC…
+          Загружаем топ серверов и проверяем онлайн…
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-6">
           {filtered.map((s) => (
             <article
               key={s.address}
-              className="group rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/50 hover:-translate-y-1 transition-all"
+              className="group rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/50 hover:-translate-y-1 transition-all flex flex-col"
             >
               <div className="p-5 flex gap-4">
                 <div className="w-14 h-14 rounded-xl bg-secondary border border-border overflow-hidden shrink-0 flex items-center justify-center">
                   {s.icon ? (
                     <img
-                      src={s.icon.startsWith("http") ? s.icon : `https:${s.icon}`}
+                      src={s.icon}
                       alt={s.name}
                       className="w-12 h-12 object-contain"
                       style={{ imageRendering: "pixelated" }}
@@ -118,15 +121,31 @@ const Servers = () => {
                   </div>
                   <button
                     onClick={() => copy(s.address)}
-                    className="flex items-center gap-1.5 text-xs font-mono text-primary hover:text-primary-glow transition-colors"
+                    className="flex items-center gap-1.5 text-xs font-mono text-primary hover:text-primary-glow transition-colors max-w-full"
                   >
-                    {copied === s.address ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                    {s.address}
+                    {copied === s.address ? <Check className="w-3 h-3 shrink-0" /> : <Copy className="w-3 h-3 shrink-0" />}
+                    <span className="truncate">{s.address}</span>
                   </button>
                 </div>
               </div>
-              {s.motd && <p className="px-5 text-xs text-muted-foreground line-clamp-2 mb-3">{s.motd}</p>}
-              <div className="px-5 pb-4 flex items-center justify-end">
+              {s.motd && (
+                <p className="px-5 text-xs text-muted-foreground line-clamp-2 mb-3">{s.motd}</p>
+              )}
+              <div className="px-5 pb-4 mt-auto flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs">
+                  {typeof s.online === "number" ? (
+                    <span className="flex items-center gap-1 text-primary font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                      <Users className="w-3 h-3" />
+                      {s.online.toLocaleString()}{s.max ? ` / ${s.max.toLocaleString()}` : ""}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
+                      Оффлайн
+                    </span>
+                  )}
+                </div>
                 <Button size="sm" variant="play" onClick={() => setOpen(s)}>
                   Подробнее
                 </Button>
@@ -152,7 +171,7 @@ const Servers = () => {
                   <div className="w-12 h-12 rounded-xl bg-secondary border border-border flex items-center justify-center overflow-hidden">
                     {open.icon ? (
                       <img
-                        src={open.icon.startsWith("http") ? open.icon : `https:${open.icon}`}
+                        src={open.icon}
                         alt={open.name}
                         className="w-10 h-10 object-contain"
                         style={{ imageRendering: "pixelated" }}
@@ -167,7 +186,11 @@ const Servers = () => {
               {open.motd && <p className="text-sm text-muted-foreground">{open.motd}</p>}
               <div className="space-y-2 pt-2">
                 <Row label="IP" value={open.address} copyable onCopy={() => copy(open.address)} copied={copied === open.address} />
-                <Row label="Топ" value={`#${open.rank} на NameMC`} />
+                {typeof open.online === "number" && (
+                  <Row label="Онлайн" value={`${open.online.toLocaleString()}${open.max ? ` / ${open.max.toLocaleString()}` : ""}`} />
+                )}
+                {open.version && <Row label="Версия" value={open.version} />}
+                <Row label="Категории" value={open.tags.join(", ")} />
                 <Row label="NameMC" value="Открыть страницу" link={`https://namemc.com/server/${open.address}`} />
               </div>
               <Button variant="hero" className="w-full mt-2" onClick={() => copy(open.address)}>
@@ -197,20 +220,20 @@ const Row = ({
   onCopy?: () => void;
   copied?: boolean;
 }) => (
-  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-secondary/30">
-    <span className="text-xs text-muted-foreground">{label}</span>
+  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-secondary/30 gap-2">
+    <span className="text-xs text-muted-foreground shrink-0">{label}</span>
     {link ? (
       <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary font-mono flex items-center gap-1 hover:underline">
         <ExternalLink className="w-3 h-3" />
         {value}
       </a>
     ) : copyable ? (
-      <button onClick={onCopy} className="text-sm font-mono text-primary flex items-center gap-1">
-        {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-        {value}
+      <button onClick={onCopy} className="text-sm font-mono text-primary flex items-center gap-1 min-w-0">
+        {copied ? <Check className="w-3 h-3 shrink-0" /> : <Copy className="w-3 h-3 shrink-0" />}
+        <span className="truncate">{value}</span>
       </button>
     ) : (
-      <span className="text-sm font-mono">{value}</span>
+      <span className="text-sm font-mono text-right truncate">{value}</span>
     )}
   </div>
 );
