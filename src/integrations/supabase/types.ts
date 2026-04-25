@@ -92,9 +92,12 @@ export type Database = {
       minecraft_accounts: {
         Row: {
           account_type: string
+          cape_url: string | null
           created_at: string
           id: string
           is_active: boolean
+          skin_model: string
+          skin_url: string | null
           updated_at: string
           user_id: string
           username: string
@@ -102,9 +105,12 @@ export type Database = {
         }
         Insert: {
           account_type?: string
+          cape_url?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
+          skin_model?: string
+          skin_url?: string | null
           updated_at?: string
           user_id: string
           username: string
@@ -112,9 +118,12 @@ export type Database = {
         }
         Update: {
           account_type?: string
+          cape_url?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
+          skin_model?: string
+          skin_url?: string | null
           updated_at?: string
           user_id?: string
           username?: string

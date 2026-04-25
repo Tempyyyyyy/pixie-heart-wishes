@@ -2,3 +2,6 @@ project_id = "iykuoicwycnmhkygqeqb"
 
 [functions.modrinth]
 verify_jwt = false
+
+[functions.namemc]
+verify_jwt = false

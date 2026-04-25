@@ -69,6 +69,10 @@ const ProfilePage = () => {
   const playtime = usePlaytime();
   const totalMods = instances.reduce((sum, inst) => sum + (inst.mods?.length || 0), 0);
 
+  // Для своего профиля — берём локальный счётчик в реальном времени.
+  // Для чужого — то, что сохранено в БД (поле hours_played, в секундах).
+  const displaySeconds = isOwnProfile ? playtime.totalSeconds : (profile?.hours_played ?? 0);
+
   useEffect(() => {
     if (!viewedId) return;
     supabase.from("profiles")
@@ -88,6 +92,20 @@ const ProfilePage = () => {
       .limit(6)
       .then(({ data }) => setInstances((data as InstanceCard[]) ?? []));
   }, [viewedId]);
+
+  // Синхронизация локального playtime в БД (только для своего профиля),
+  // чтобы друзья видели актуальные часы.
+  useEffect(() => {
+    if (!isOwnProfile || !user) return;
+    if (!playtime.totalSeconds) return;
+    if (profile && playtime.totalSeconds === profile.hours_played) return;
+    const t = setTimeout(() => {
+      supabase.from("profiles")
+        .update({ hours_played: playtime.totalSeconds })
+        .eq("id", user.id);
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [playtime.totalSeconds, isOwnProfile, user, profile?.hours_played]);
 
   const onAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -268,7 +286,7 @@ const ProfilePage = () => {
 
       {/* === STATS === */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-fade-in">
-        <StatCard icon={Clock} value={formatHours(playtime.totalSeconds)} label="Время в игре" />
+        <StatCard icon={Clock} value={formatHours(displaySeconds)} label="Время в игре" />
         <StatCard icon={Download} value={totalMods} label="Модов в сборках" />
         <StatCard icon={Layers} value={instances.length} label="Сборок создано" />
         <StatCard icon={Trophy} value={`${profile?.achievements ?? 0}/120`} label="Достижений" />

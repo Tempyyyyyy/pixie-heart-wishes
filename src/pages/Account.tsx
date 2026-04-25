@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Layout } from "@/components/launcher/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { AuthDialog } from "@/components/launcher/AuthDialog";
 import { useLaunchPrefs } from "@/lib/launchSettings";
 import {
   Gamepad2, UserPlus, Check, Trash2, Loader2, LogIn, ShieldAlert, UserRound, Sparkles,
+  Shirt, Upload, X,
 } from "lucide-react";
 
 type McAccount = {
@@ -20,7 +21,21 @@ type McAccount = {
   uuid: string | null;
   is_active: boolean;
   created_at: string;
+  skin_url: string | null;
+  cape_url: string | null;
+  skin_model: string;
 };
+
+// Built-in capes (текстуры из vanilla/Optifine — публичные изображения)
+const CAPES = [
+  { id: "mojang",      name: "Mojang",     url: "https://textures.minecraft.net/texture/953cac8b779fe41383e675ee2b86071a71658f2180f56fbce8aa315ea70e2ed6" },
+  { id: "minecon2011", name: "MineCon 2011", url: "https://textures.minecraft.net/texture/953cac8b779fe41383e675ee2b86071a71658f2180f56fbce8aa315ea70e2ed6" },
+  { id: "minecon2012", name: "MineCon 2012", url: "https://textures.minecraft.net/texture/a2e8d97ec79100e90a75d369d1b3ba81273c4f82bc1b737e934eed4a854be1b6" },
+  { id: "minecon2013", name: "MineCon 2013", url: "https://textures.minecraft.net/texture/153b1a0dfcbae953cdeb6f2c2bf6bf79943239b1372780da44bcbb29273131da" },
+  { id: "minecon2015", name: "MineCon 2015", url: "https://textures.minecraft.net/texture/b0cc08840700447322d953a02b965f1d65a13a603bf64b17c803c21446fe1635" },
+  { id: "minecon2016", name: "MineCon 2016", url: "https://textures.minecraft.net/texture/298ae017a64b67f59ce7ebcdc8a12bf7daed0784feb4e4b0dad8b424a6a47e4b" },
+  { id: "vanilla",     name: "Vanilla",    url: "https://textures.minecraft.net/texture/2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933" },
+];
 
 // Deterministic offline UUID (Mojang-style "OfflinePlayer:<name>")
 const offlineUuid = (name: string) => {
@@ -43,6 +58,9 @@ const AccountPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
+  const [skinDialog, setSkinDialog] = useState<McAccount | null>(null);
+  const [uploadingSkin, setUploadingSkin] = useState(false);
+  const skinInputRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
     if (!user) return;
@@ -138,6 +156,55 @@ const AccountPage = () => {
     const { error } = await supabase.from("minecraft_accounts").delete().eq("id", acc.id);
     if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
     toast({ title: "Аккаунт удалён" });
+    load();
+  };
+
+  const onSkinFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user || !skinDialog) return;
+    if (!/\.png$/i.test(file.name)) {
+      return toast({ title: "Только PNG", description: "Скины Minecraft — это .png 64×64 или 64×32", variant: "destructive" });
+    }
+    if (file.size > 1024 * 1024) {
+      return toast({ title: "Файл слишком большой", description: "Максимум 1 МБ", variant: "destructive" });
+    }
+    setUploadingSkin(true);
+    const path = `${user.id}/${skinDialog.id}-${Date.now()}.png`;
+    const { error: upErr } = await supabase.storage.from("skins").upload(path, file, { upsert: true, contentType: "image/png" });
+    if (upErr) {
+      setUploadingSkin(false);
+      return toast({ title: "Ошибка загрузки", description: upErr.message, variant: "destructive" });
+    }
+    const { data: { publicUrl } } = supabase.storage.from("skins").getPublicUrl(path);
+    const { error: updErr } = await supabase.from("minecraft_accounts").update({ skin_url: publicUrl }).eq("id", skinDialog.id);
+    setUploadingSkin(false);
+    if (updErr) return toast({ title: "Ошибка БД", description: updErr.message, variant: "destructive" });
+    setSkinDialog(prev => prev ? { ...prev, skin_url: publicUrl } : prev);
+    toast({ title: "Скин загружен", description: "Будет применён при следующем запуске оффлайн-аккаунта" });
+    load();
+  };
+
+  const setSkinModel = async (acc: McAccount, model: "classic" | "slim") => {
+    const { error } = await supabase.from("minecraft_accounts").update({ skin_model: model }).eq("id", acc.id);
+    if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    setSkinDialog(prev => prev ? { ...prev, skin_model: model } : prev);
+    load();
+  };
+
+  const setCape = async (acc: McAccount, capeUrl: string | null) => {
+    const { error } = await supabase.from("minecraft_accounts").update({ cape_url: capeUrl }).eq("id", acc.id);
+    if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    setSkinDialog(prev => prev ? { ...prev, cape_url: capeUrl } : prev);
+    toast({ title: capeUrl ? "Плащ выбран" : "Плащ снят" });
+    load();
+  };
+
+  const removeSkin = async (acc: McAccount) => {
+    const { error } = await supabase.from("minecraft_accounts").update({ skin_url: null }).eq("id", acc.id);
+    if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    setSkinDialog(prev => prev ? { ...prev, skin_url: null } : prev);
+    toast({ title: "Скин сброшен" });
     load();
   };
 
@@ -253,7 +320,11 @@ const AccountPage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {accounts.map(acc => (
+            {accounts.map(acc => {
+              const previewSrc = acc.skin_url
+                ? `https://mc-heads.net/avatar/${encodeURIComponent(acc.skin_url)}/64`
+                : `https://mc-heads.net/avatar/${encodeURIComponent(acc.username)}/64`;
+              return (
               <div
                 key={acc.id}
                 className={`rounded-xl border p-4 transition-all ${
@@ -263,10 +334,9 @@ const AccountPage = () => {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  {/* Minecraft head avatar (Crafatar) */}
                   <div className="w-12 h-12 rounded-lg bg-secondary border border-border overflow-hidden shrink-0 image-render-pixel">
                     <img
-                      src={`https://mc-heads.net/avatar/${encodeURIComponent(acc.username)}/64`}
+                      src={previewSrc}
                       alt={acc.username}
                       className="w-full h-full"
                       style={{ imageRendering: "pixelated" as const }}
@@ -280,26 +350,37 @@ const AccountPage = () => {
                     </div>
                     <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
                       {acc.account_type === "offline" ? "Оффлайн" : "Microsoft"}
+                      {acc.skin_url && " · кастом-скин"}
+                      {acc.cape_url && " · плащ"}
                     </span>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-3">
+                <div className="flex gap-2 mt-3 flex-wrap">
                   {!acc.is_active && (
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setActive(acc)}>
-                      Сделать активным
+                    <Button size="sm" variant="outline" className="flex-1 min-w-0" onClick={() => setActive(acc)}>
+                      Активный
                     </Button>
                   )}
                   {acc.is_active && (
-                    <span className="flex-1 text-xs text-center py-1.5 px-2 rounded-md bg-primary/15 text-primary font-medium">
+                    <span className="flex-1 min-w-0 text-xs text-center py-1.5 px-2 rounded-md bg-primary/15 text-primary font-medium">
                       Активен
                     </span>
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 min-w-0"
+                    onClick={() => setSkinDialog(acc)}
+                  >
+                    <Shirt className="w-3.5 h-3.5 mr-1" />Скин
+                  </Button>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => remove(acc)}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
@@ -350,6 +431,139 @@ const AccountPage = () => {
               Создать
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* SKIN / CAPE DIALOG */}
+      <Dialog open={!!skinDialog} onOpenChange={(v) => !v && setSkinDialog(null)}>
+        <DialogContent className="max-w-2xl">
+          {skinDialog && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Shirt className="w-5 h-5 text-primary" />
+                  Скин и плащ — {skinDialog.username}
+                </DialogTitle>
+                <DialogDescription>
+                  {skinDialog.account_type === "microsoft"
+                    ? "Для Microsoft аккаунтов скин и плащ управляются Mojang. Здесь — только превью."
+                    : "Загрузи свой PNG (64×64) и выбери плащ. Применяется к оффлайн-аккаунту при запуске."}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid md:grid-cols-2 gap-5 py-2">
+                {/* Preview */}
+                <div className="rounded-xl border border-border bg-secondary/30 p-4 flex flex-col items-center justify-center">
+                  <img
+                    src={
+                      skinDialog.skin_url
+                        ? `https://mc-heads.net/body/${encodeURIComponent(skinDialog.skin_url)}/256`
+                        : `https://mc-heads.net/body/${encodeURIComponent(skinDialog.username)}/256`
+                    }
+                    alt="preview"
+                    className="h-56 object-contain"
+                    style={{ imageRendering: "pixelated" }}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = `https://mc-heads.net/body/MHF_Steve/256`;
+                    }}
+                  />
+                  <div className="text-xs text-muted-foreground mt-2">
+                    {skinDialog.skin_url ? "Кастомный скин" : "Скин по нику"}
+                  </div>
+                </div>
+
+                {/* Controls */}
+                <div className="space-y-4">
+                  {/* Upload skin */}
+                  <div>
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Свой скин (PNG)</Label>
+                    <input ref={skinInputRef} type="file" accept="image/png" className="hidden" onChange={onSkinFile} />
+                    <div className="flex gap-2 mt-1.5">
+                      <Button
+                        size="sm"
+                        variant="hero"
+                        className="flex-1"
+                        disabled={uploadingSkin || skinDialog.account_type === "microsoft"}
+                        onClick={() => skinInputRef.current?.click()}
+                      >
+                        {uploadingSkin ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+                        Загрузить
+                      </Button>
+                      {skinDialog.skin_url && (
+                        <Button size="sm" variant="outline" onClick={() => removeSkin(skinDialog)}>
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Skin model */}
+                  <div>
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Модель</Label>
+                    <div className="flex gap-2 mt-1.5">
+                      <Button
+                        size="sm"
+                        variant={skinDialog.skin_model === "classic" ? "hero" : "outline"}
+                        className="flex-1"
+                        onClick={() => setSkinModel(skinDialog, "classic")}
+                      >
+                        Steve (4px)
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={skinDialog.skin_model === "slim" ? "hero" : "outline"}
+                        className="flex-1"
+                        onClick={() => setSkinModel(skinDialog, "slim")}
+                      >
+                        Alex (3px)
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Cape */}
+                  <div>
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                      Плащ {skinDialog.account_type === "microsoft" && "(только оффлайн)"}
+                    </Label>
+                    <div className="grid grid-cols-4 gap-2 mt-1.5">
+                      <button
+                        onClick={() => skinDialog.account_type === "offline" && setCape(skinDialog, null)}
+                        disabled={skinDialog.account_type === "microsoft"}
+                        className={`aspect-[3/5] rounded-lg border-2 flex items-center justify-center text-[10px] text-muted-foreground transition-all ${
+                          !skinDialog.cape_url ? "border-primary bg-primary/10" : "border-border bg-secondary/30 hover:border-primary/40"
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      {CAPES.map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => skinDialog.account_type === "offline" && setCape(skinDialog, c.url)}
+                          disabled={skinDialog.account_type === "microsoft"}
+                          title={c.name}
+                          className={`aspect-[3/5] rounded-lg border-2 overflow-hidden transition-all ${
+                            skinDialog.cape_url === c.url ? "border-primary" : "border-border hover:border-primary/40"
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          <img
+                            src={c.url}
+                            alt={c.name}
+                            className="w-full h-full object-cover"
+                            style={{ imageRendering: "pixelated" }}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-muted-foreground bg-secondary/40 rounded-lg p-3 border border-border">
+                💡 Скины и плащи применяются только к <b>оффлайн-аккаунтам</b> при запуске игры через десктопный лаунчер.
+                В лицензионных аккаунтах внешний вид загружается с серверов Mojang.
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </Layout>
