@@ -546,28 +546,30 @@ const AccountPage = () => {
 
                 {/* Controls */}
                 <div className="space-y-4">
-                  {/* Upload skin — для всех аккаунтов */}
-                  <div>
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Свой скин (PNG)</Label>
-                    <input ref={skinInputRef} type="file" accept="image/png" className="hidden" onChange={onSkinFile} />
-                    <div className="flex gap-2 mt-1.5">
-                      <Button
-                        size="sm"
-                        variant="hero"
-                        className="flex-1"
-                        disabled={uploadingSkin}
-                        onClick={() => skinInputRef.current?.click()}
-                      >
-                        {uploadingSkin ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
-                        Загрузить
-                      </Button>
-                      {skinDialog.skin_url && (
-                        <Button size="sm" variant="outline" onClick={() => removeSkin(skinDialog)}>
-                          <X className="w-3.5 h-3.5" />
+                  {/* Upload skin — только оффлайн */}
+                  {skinDialog.account_type === "offline" && (
+                    <div>
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Свой скин (PNG)</Label>
+                      <input ref={skinInputRef} type="file" accept="image/png" className="hidden" onChange={onSkinFile} />
+                      <div className="flex gap-2 mt-1.5">
+                        <Button
+                          size="sm"
+                          variant="hero"
+                          className="flex-1"
+                          disabled={uploadingSkin}
+                          onClick={() => skinInputRef.current?.click()}
+                        >
+                          {uploadingSkin ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+                          Загрузить
                         </Button>
-                      )}
+                        {skinDialog.skin_url && (
+                          <Button size="sm" variant="outline" onClick={() => removeSkin(skinDialog)}>
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Skin model — только оффлайн */}
                   {skinDialog.account_type === "offline" && (
@@ -594,35 +596,32 @@ const AccountPage = () => {
                     </div>
                   )}
 
-                  {/* Cape — только для Microsoft аккаунтов */}
+                  {/* Microsoft account info */}
                   {skinDialog.account_type === "microsoft" && (
-                    <div>
-                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Свой плащ (PNG)</Label>
-                      <input ref={capeInputRef} type="file" accept="image/png" className="hidden" onChange={onCapeFile} />
-                      <div className="flex gap-2 mt-1.5">
-                        <Button
-                          size="sm"
-                          variant="hero"
-                          className="flex-1"
-                          disabled={uploadingCape}
-                          onClick={() => capeInputRef.current?.click()}
-                        >
-                          {uploadingCape ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
-                          Загрузить
-                        </Button>
-                        {skinDialog.cape_url && (
-                          <Button size="sm" variant="outline" onClick={() => removeCape(skinDialog)}>
-                            <X className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
+                    <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                      <div className="text-sm font-semibold mb-1 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                        Лицензионный аккаунт
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        Скин и плащ меняются на{" "}
+                        <a
+                          href="https://www.minecraft.net/profile/skin"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary underline"
+                        >
+                          minecraft.net/profile/skin
+                        </a>
+                        . Здесь показывается только просмотр.
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
 
               <div className="text-[11px] text-muted-foreground bg-secondary/40 rounded-lg p-3 border border-border">
-                💡 <b>Скины</b> можно загружать для всех аккаунтов. <b>Плащи</b> доступны только для лицензионных Microsoft-аккаунтов.
+                💡 <b>Скины</b> можно загружать только для оффлайн-аккаунтов. <b>Плащи</b> для лицензионных Microsoft-аккаунтов загружаются автоматически с серверов Mojang.
               </div>
             </>
           )}
