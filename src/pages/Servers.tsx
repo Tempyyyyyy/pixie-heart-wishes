@@ -134,8 +134,8 @@ const Servers = () => {
               <div className="px-5 pb-4 mt-auto flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-xs">
                   {typeof s.online === "number" ? (
-                    <span className="flex items-center gap-1 text-emerald-500 font-semibold">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="flex items-center gap-1 text-primary font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                       <Users className="w-3 h-3" />
                       {s.online.toLocaleString()}{s.max ? ` / ${s.max.toLocaleString()}` : ""}
                     </span>
