@@ -224,6 +224,12 @@ const Skins = () => {
                 <Button onClick={() => downloadSkin(profile.skinUrl, `${profile.username}.png`)}>
                   <Download className="w-4 h-4 mr-1" />Скачать скин
                 </Button>
+                {user && accounts.length > 0 && (
+                  <Button variant="hero" onClick={() => applySkinToAccount(accounts[0].id, profile.skinUrl)} disabled={applying}>
+                    {applying ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <UserRound className="w-4 h-4 mr-1" />}
+                    Применить к {accounts[0].username}
+                  </Button>
+                )}
                 <Button variant="outline" asChild>
                   <a href={`https://namemc.com/profile/${profile.username}`} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-4 h-4 mr-1" />NameMC
@@ -313,7 +319,7 @@ const Skins = () => {
               </DialogHeader>
               <div className="flex justify-center py-4 bg-gradient-to-b from-primary/10 to-transparent rounded-xl">
                 <SkinViewer3D
-                  skinUrl={`https://s.namemc.com/i/${open.id}.png`}
+                  skinUrl={open.image}
                   width={240}
                   height={320}
                   rotate
@@ -336,7 +342,7 @@ const Skins = () => {
                         key={acc.id}
                         size="sm"
                         variant={acc.is_active ? "hero" : "outline"}
-                        onClick={() => applySkinToAccount(acc.id, `https://s.namemc.com/i/${open.id}.png`)}
+                        onClick={() => applySkinToAccount(acc.id, open.image)}
                         disabled={applying}
                         className="flex items-center gap-2"
                       >
