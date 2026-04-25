@@ -45,12 +45,6 @@ const Skins = () => {
   const [applying, setApplying] = useState(false);
   const [accounts, setAccounts] = useState<any[]>([]);
 
-  // Поиск по нику
-  const [search, setSearch] = useState("");
-  const [searching, setSearching] = useState(false);
-  const [profile, setProfile] = useState<ProfileHit | null>(null);
-  const [activeCape, setActiveCape] = useState<string | null>(null);
-
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -78,28 +72,6 @@ const Skins = () => {
       .eq("account_type", "offline")
       .then(({ data }) => setAccounts(data ?? []));
   }, [user]);
-
-  const doSearch = async () => {
-    const q = search.trim();
-    if (!q) return;
-    setSearching(true);
-    setProfile(null);
-    setActiveCape(null);
-    try {
-      const r = await fetch(`${NAMEMC_FN}?action=profile&username=${encodeURIComponent(q)}`);
-      const d = await r.json();
-      if (d.profile) {
-        setProfile(d.profile);
-        if (d.profile.capes?.[0]) setActiveCape(d.profile.capes[0].image);
-      } else {
-        toast({ title: "Игрок не найден", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Ошибка поиска", variant: "destructive" });
-    } finally {
-      setSearching(false);
-    }
-  };
 
   const downloadSkin = (url: string, filename: string) => {
     const a = document.createElement("a");
@@ -143,103 +115,8 @@ const Skins = () => {
     <Layout>
       <header className="mb-6 animate-fade-in text-center">
         <h1 className="font-display font-bold text-4xl md:text-5xl mb-2">Скины</h1>
-        <p className="text-muted-foreground">Тренды NameMC + 3D-просмотр и поиск по нику.</p>
+        <p className="text-muted-foreground">Тренды NameMC + 3D-просмотр.</p>
       </header>
-
-      {/* Поиск по нику */}
-      <div className="max-w-2xl mx-auto mb-8 animate-fade-in">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && doSearch()}
-              placeholder="Введи никнейм Minecraft (например, Notch)…"
-              className="h-12 pl-11 rounded-xl bg-secondary/60"
-            />
-          </div>
-          <Button variant="hero" onClick={doSearch} disabled={searching || !search.trim()} className="h-12">
-            {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 mr-1" />}
-            Найти
-          </Button>
-        </div>
-
-        {profile && (
-          <div className="mt-4 rounded-2xl border border-border bg-card p-5 grid sm:grid-cols-[280px_1fr] gap-5 items-start">
-            <div className="flex justify-center">
-              <SkinViewer3D
-                skinUrl={profile.skinUrl}
-                capeUrl={activeCape}
-                width={240}
-                height={320}
-                rotate
-              />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Найден игрок</div>
-              <div className="font-display font-bold text-2xl mb-2">{profile.username}</div>
-              {profile.uuid && (
-                <div className="text-[11px] font-mono text-muted-foreground break-all mb-3">UUID: {profile.uuid}</div>
-              )}
-
-              {profile.capes && profile.capes.length > 0 && (
-                <div className="mb-3">
-                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                    Плащи ({profile.capes.length})
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setActiveCape(null)}
-                      className={cn(
-                        "px-3 h-8 rounded-md text-xs border",
-                        !activeCape ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
-                      )}
-                    >
-                      Без плаща
-                    </button>
-                    {profile.capes.map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => setActiveCape(c.image)}
-                        title={c.name}
-                        className={cn(
-                          "h-12 w-9 rounded-md border-2 overflow-hidden",
-                          activeCape === c.image ? "border-primary" : "border-border hover:border-primary/40"
-                        )}
-                      >
-                        <img
-                          src={c.image}
-                          alt={c.name}
-                          className="w-full h-full object-cover"
-                          style={{ imageRendering: "pixelated" }}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => downloadSkin(profile.skinUrl, `${profile.username}.png`)}>
-                  <Download className="w-4 h-4 mr-1" />Скачать скин
-                </Button>
-                {user && accounts.length > 0 && (
-                  <Button variant="hero" onClick={() => applySkinToAccount(accounts[0].id, profile.skinUrl)} disabled={applying}>
-                    {applying ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <UserRound className="w-4 h-4 mr-1" />}
-                    Применить к {accounts[0].username}
-                  </Button>
-                )}
-                <Button variant="outline" asChild>
-                  <a href={`https://namemc.com/profile/${profile.username}`} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="w-4 h-4 mr-1" />NameMC
-                  </a>
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Период */}
       <div className="flex justify-center flex-wrap gap-2 mb-5">
