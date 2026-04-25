@@ -63,6 +63,8 @@ const AccountPage = () => {
   const [skinDialog, setSkinDialog] = useState<McAccount | null>(null);
   const [uploadingSkin, setUploadingSkin] = useState(false);
   const skinInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingCape, setUploadingCape] = useState(false);
+  const capeInputRef = useRef<HTMLInputElement>(null);
   // Импорт плащей с лиц. ника (для оффлайн-аккаунтов)
   const [importNick, setImportNick] = useState("");
   const [importing, setImporting] = useState(false);
@@ -211,6 +213,40 @@ const AccountPage = () => {
     if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
     setSkinDialog(prev => prev ? { ...prev, skin_url: null } : prev);
     toast({ title: "Скин сброшен" });
+    load();
+  };
+
+  const onCapeFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user || !skinDialog) return;
+    if (!/\.png$/i.test(file.name)) {
+      return toast({ title: "Только PNG", description: "Плащи Minecraft — это .png 64×32", variant: "destructive" });
+    }
+    if (file.size > 1024 * 1024) {
+      return toast({ title: "Файл слишком большой", description: "Максимум 1 МБ", variant: "destructive" });
+    }
+    setUploadingCape(true);
+    const path = `${user.id}/${skinDialog.id}-cape-${Date.now()}.png`;
+    const { error: upErr } = await supabase.storage.from("skins").upload(path, file, { upsert: true, contentType: "image/png" });
+    if (upErr) {
+      setUploadingCape(false);
+      return toast({ title: "Ошибка загрузки", description: upErr.message, variant: "destructive" });
+    }
+    const { data: { publicUrl } } = supabase.storage.from("skins").getPublicUrl(path);
+    const { error: updErr } = await supabase.from("minecraft_accounts").update({ cape_url: publicUrl }).eq("id", skinDialog.id);
+    setUploadingCape(false);
+    if (updErr) return toast({ title: "Ошибка БД", description: updErr.message, variant: "destructive" });
+    setSkinDialog(prev => prev ? { ...prev, cape_url: publicUrl } : prev);
+    toast({ title: "Плащ загружен", description: "Будет применён при следующем запуске" });
+    load();
+  };
+
+  const removeCape = async (acc: McAccount) => {
+    const { error } = await supabase.from("minecraft_accounts").update({ cape_url: null }).eq("id", acc.id);
+    if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    setSkinDialog(prev => prev ? { ...prev, cape_url: null } : prev);
+    toast({ title: "Плащ сброшен" });
     load();
   };
 
@@ -510,30 +546,28 @@ const AccountPage = () => {
 
                 {/* Controls */}
                 <div className="space-y-4">
-                  {/* Upload skin — только оффлайн */}
-                  {skinDialog.account_type === "offline" && (
-                    <div>
-                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Свой скин (PNG)</Label>
-                      <input ref={skinInputRef} type="file" accept="image/png" className="hidden" onChange={onSkinFile} />
-                      <div className="flex gap-2 mt-1.5">
-                        <Button
-                          size="sm"
-                          variant="hero"
-                          className="flex-1"
-                          disabled={uploadingSkin}
-                          onClick={() => skinInputRef.current?.click()}
-                        >
-                          {uploadingSkin ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
-                          Загрузить
+                  {/* Upload skin — для всех аккаунтов */}
+                  <div>
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Свой скин (PNG)</Label>
+                    <input ref={skinInputRef} type="file" accept="image/png" className="hidden" onChange={onSkinFile} />
+                    <div className="flex gap-2 mt-1.5">
+                      <Button
+                        size="sm"
+                        variant="hero"
+                        className="flex-1"
+                        disabled={uploadingSkin}
+                        onClick={() => skinInputRef.current?.click()}
+                      >
+                        {uploadingSkin ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+                        Загрузить
+                      </Button>
+                      {skinDialog.skin_url && (
+                        <Button size="sm" variant="outline" onClick={() => removeSkin(skinDialog)}>
+                          <X className="w-3.5 h-3.5" />
                         </Button>
-                        {skinDialog.skin_url && (
-                          <Button size="sm" variant="outline" onClick={() => removeSkin(skinDialog)}>
-                            <X className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
-                      </div>
+                      )}
                     </div>
-                  )}
+                  </div>
 
                   {/* Skin model — только оффлайн */}
                   {skinDialog.account_type === "offline" && (
@@ -560,32 +594,33 @@ const AccountPage = () => {
                     </div>
                   )}
 
-                  {/* Cape — только для лицензионных аккаунтов */}
-                  {skinDialog.account_type === "microsoft" ? (
-                    <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-                      <div className="text-sm font-semibold mb-1 flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-primary" />
-                        Лицензионный аккаунт
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Скин и плащ для Microsoft-аккаунта меняются на{" "}
-                        <a
-                          href="https://www.minecraft.net/profile/skin"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary underline"
-                        >
-                          minecraft.net/profile/skin
-                        </a>
-                        . Здесь показывается то, что стоит у тебя сейчас.
-                      </p>
+                  {/* Cape — для всех аккаунтов */}
+                  <div>
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Свой плащ (PNG)</Label>
+                    <input ref={capeInputRef} type="file" accept="image/png" className="hidden" onChange={onCapeFile} />
+                    <div className="flex gap-2 mt-1.5">
+                      <Button
+                        size="sm"
+                        variant="hero"
+                        className="flex-1"
+                        disabled={uploadingCape}
+                        onClick={() => capeInputRef.current?.click()}
+                      >
+                        {uploadingCape ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+                        Загрузить
+                      </Button>
+                      {skinDialog.cape_url && (
+                        <Button size="sm" variant="outline" onClick={() => removeCape(skinDialog)}>
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
                     </div>
-                  ) : null}
+                  </div>
                 </div>
               </div>
 
               <div className="text-[11px] text-muted-foreground bg-secondary/40 rounded-lg p-3 border border-border">
-                💡 <b>Скины</b> можно загружать для оффлайн-аккаунтов. <b>Плащи</b> доступны только для лицензионных Microsoft-аккаунтов и загружаются автоматически с серверов Mojang.
+                💡 <b>Скины и плащи</b> можно загружать для всех аккаунтов. Для Microsoft-аккаунтов они будут отображаться только в этом лаунчере (на minecraft.net нужно менять отдельно).
               </div>
             </>
           )}
