@@ -3,10 +3,12 @@ import { Layout } from "@/components/launcher/Layout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Download, Shirt, ExternalLink, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Download, Shirt, ExternalLink, Loader2, ChevronLeft, ChevronRight, UserRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { SkinViewer3D } from "@/components/launcher/SkinViewer3D";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 type SkinHit = {
   id: string;
@@ -34,11 +36,14 @@ const NAMEMC_FN = "https://iykuoicwycnmhkygqeqb.supabase.co/functions/v1/namemc"
 
 const Skins = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [period, setPeriod] = useState<(typeof PERIODS)[number]["id"]>("weekly");
   const [page, setPage] = useState(1);
   const [skins, setSkins] = useState<SkinHit[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<SkinHit | null>(null);
+  const [applying, setApplying] = useState(false);
+  const [accounts, setAccounts] = useState<any[]>([]);
 
   // Поиск по нику
   const [search, setSearch] = useState("");
@@ -62,6 +67,17 @@ const Skins = () => {
       cancelled = true;
     };
   }, [period, page, toast]);
+
+  // Load offline accounts for applying skins
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("minecraft_accounts")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("account_type", "offline")
+      .then(({ data }) => setAccounts(data ?? []));
+  }, [user]);
 
   const doSearch = async () => {
     const q = search.trim();
@@ -94,6 +110,33 @@ const Skins = () => {
     a.click();
     a.remove();
     toast({ title: "Скачивание", description: filename });
+  };
+
+  const applySkinToAccount = async (accountId: string, skinUrl: string) => {
+    if (!user) return;
+    setApplying(true);
+    try {
+      // Download skin as blob
+      const response = await fetch(skinUrl);
+      const blob = await response.blob();
+      const file = new File([blob], "skin.png", { type: "image/png" });
+
+      // Upload to Supabase storage
+      const path = `${user.id}/${accountId}-${Date.now()}.png`;
+      const { error: upErr } = await supabase.storage.from("skins").upload(path, file, { upsert: true, contentType: "image/png" });
+      if (upErr) throw upErr;
+
+      const { data: { publicUrl } } = supabase.storage.from("skins").getPublicUrl(path);
+      const { error: updErr } = await supabase.from("minecraft_accounts").update({ skin_url: publicUrl }).eq("id", accountId);
+      if (updErr) throw updErr;
+
+      toast({ title: "Скин применён", description: "Будет активен при следующем запуске игры" });
+      setOpen(null);
+    } catch (err: any) {
+      toast({ title: "Ошибка", description: err.message, variant: "destructive" });
+    } finally {
+      setApplying(false);
+    }
   };
 
   return (
@@ -280,6 +323,44 @@ const Skins = () => {
                 💡 Перетаскивай мышью — скин крутится. Колесико — зум.
               </p>
               <div className="text-[11px] font-mono text-muted-foreground break-all">ID: {open.id}</div>
+
+              {/* Apply to account section */}
+              {user && accounts.length > 0 ? (
+                <div className="space-y-2 pt-2">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Применить к оффлайн-аккаунту
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {accounts.map((acc) => (
+                      <Button
+                        key={acc.id}
+                        size="sm"
+                        variant={acc.is_active ? "hero" : "outline"}
+                        onClick={() => applySkinToAccount(acc.id, `https://s.namemc.com/i/${open.id}.png`)}
+                        disabled={applying}
+                        className="flex items-center gap-2"
+                      >
+                        <UserRound className="w-3.5 h-3.5" />
+                        {acc.username}
+                        {acc.is_active && <span className="text-[10px] opacity-70">(активен)</span>}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ) : user ? (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    Нет оффлайн-аккаунтов. Создай один на странице <a href="/account" className="text-primary underline">Аккаунты</a>.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    <a href="/account" className="text-primary underline">Войди</a>, чтобы применять скины к аккаунтам.
+                  </p>
+                </div>
+              )}
+
               <div className="flex gap-2 pt-2">
                 <Button
                   variant="hero"
