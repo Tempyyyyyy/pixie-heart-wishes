@@ -574,23 +574,26 @@ const AccountPage = () => {
                           >
                             <X className="w-4 h-4" />
                           </button>
-                          {[...CAPES, ...importedCapes].map((c) => (
-                            <button
-                              key={c.id}
-                              onClick={() => setCape(skinDialog, c.url || (c as any).image)}
-                              title={c.name}
-                              className={`aspect-[3/5] rounded-lg border-2 overflow-hidden transition-all ${
-                                skinDialog.cape_url === ((c as any).url || (c as any).image) ? "border-primary" : "border-border hover:border-primary/40"
-                              }`}
-                            >
-                              <img
-                                src={(c as any).url || (c as any).image}
-                                alt={c.name}
-                                className="w-full h-full object-cover"
-                                style={{ imageRendering: "pixelated" }}
-                              />
-                            </button>
-                          ))}
+                          {[...CAPES, ...importedCapes].map((c) => {
+                            const url = (c as any).url || (c as any).image;
+                            return (
+                              <button
+                                key={c.id}
+                                onClick={() => setCape(skinDialog, url)}
+                                title={c.name}
+                                className={`aspect-[3/5] rounded-lg border-2 overflow-hidden transition-all ${
+                                  skinDialog.cape_url === url ? "border-primary" : "border-border hover:border-primary/40"
+                                }`}
+                              >
+                                <img
+                                  src={url}
+                                  alt={c.name}
+                                  className="w-full h-full object-cover"
+                                  style={{ imageRendering: "pixelated" }}
+                                />
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
 
