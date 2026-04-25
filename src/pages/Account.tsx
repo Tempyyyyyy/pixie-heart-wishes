@@ -27,15 +27,16 @@ type McAccount = {
   skin_model: string;
 };
 
-// Built-in capes (текстуры из vanilla/Optifine — публичные изображения)
+// Built-in capes (текстуры из vanilla/MineCon — публичные URL minecraft.net)
 const CAPES = [
-  { id: "mojang",      name: "Mojang",     url: "https://textures.minecraft.net/texture/953cac8b779fe41383e675ee2b86071a71658f2180f56fbce8aa315ea70e2ed6" },
-  { id: "minecon2011", name: "MineCon 2011", url: "https://textures.minecraft.net/texture/953cac8b779fe41383e675ee2b86071a71658f2180f56fbce8aa315ea70e2ed6" },
-  { id: "minecon2012", name: "MineCon 2012", url: "https://textures.minecraft.net/texture/a2e8d97ec79100e90a75d369d1b3ba81273c4f82bc1b737e934eed4a854be1b6" },
-  { id: "minecon2013", name: "MineCon 2013", url: "https://textures.minecraft.net/texture/153b1a0dfcbae953cdeb6f2c2bf6bf79943239b1372780da44bcbb29273131da" },
-  { id: "minecon2015", name: "MineCon 2015", url: "https://textures.minecraft.net/texture/b0cc08840700447322d953a02b965f1d65a13a603bf64b17c803c21446fe1635" },
-  { id: "minecon2016", name: "MineCon 2016", url: "https://textures.minecraft.net/texture/298ae017a64b67f59ce7ebcdc8a12bf7daed0784feb4e4b0dad8b424a6a47e4b" },
-  { id: "vanilla",     name: "Vanilla",    url: "https://textures.minecraft.net/texture/2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933" },
+  { id: "minecon2011", name: "MineCon 2011",  url: "https://textures.minecraft.net/texture/953cac8b779fe41383e675ee2b86071a71658f2180f56fbce8aa315ea70e2ed6" },
+  { id: "minecon2012", name: "MineCon 2012",  url: "https://textures.minecraft.net/texture/a2e8d97ec79100e90a75d369d1b3ba81273c4f82bc1b737e934eed4a854be1b6" },
+  { id: "minecon2013", name: "MineCon 2013",  url: "https://textures.minecraft.net/texture/153b1a0dfcbae953cdeb6f2c2bf6bf79943239b1372780da44bcbb29273131da" },
+  { id: "minecon2015", name: "MineCon 2015",  url: "https://textures.minecraft.net/texture/b0cc08840700447322d953a02b965f1d65a13a603bf64b17c803c21446fe1635" },
+  { id: "minecon2016", name: "MineCon 2016",  url: "https://textures.minecraft.net/texture/298ae017a64b67f59ce7ebcdc8a12bf7daed0784feb4e4b0dad8b424a6a47e4b" },
+  { id: "mojang",      name: "Mojang Classic",url: "https://textures.minecraft.net/texture/5786fe99be377dfb6858859f926c4dbc995751e91cee373468c5fbf4865e7151" },
+  { id: "vanilla",     name: "Vanilla",       url: "https://textures.minecraft.net/texture/2340c0e03dd24a11b15a8b33c2a7e9e32abb2051b2481d0ba7defd635ca7a933" },
+  { id: "migrator",    name: "Migrator",      url: "https://textures.minecraft.net/texture/2dd3a9a5494e1a2eb50fc4356a6d09cda2ce3a55aabf0667ecf90ad6e1442f6e" },
 ];
 
 // Deterministic offline UUID (Mojang-style "OfflinePlayer:<name>")
