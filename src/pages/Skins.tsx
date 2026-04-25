@@ -51,6 +51,8 @@ const Skins = () => {
     fetch(`${NAMEMC_FN}?action=skins&period=${period}&page=${page}`)
       .then((r) => r.json())
       .then((d) => {
+        console.log("API Response:", d);
+        console.log("Skins data:", d.skins);
         if (!cancelled) setSkins(d.skins ?? []);
       })
       .catch(() => {
