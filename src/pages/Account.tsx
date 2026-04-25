@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Layout } from "@/components/launcher/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +58,9 @@ const AccountPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
+  const [skinDialog, setSkinDialog] = useState<McAccount | null>(null);
+  const [uploadingSkin, setUploadingSkin] = useState(false);
+  const skinInputRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
     if (!user) return;
