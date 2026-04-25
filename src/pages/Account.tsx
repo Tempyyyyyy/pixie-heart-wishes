@@ -11,8 +11,9 @@ import { AuthDialog } from "@/components/launcher/AuthDialog";
 import { useLaunchPrefs } from "@/lib/launchSettings";
 import {
   Gamepad2, UserPlus, Check, Trash2, Loader2, LogIn, ShieldAlert, UserRound, Sparkles,
-  Shirt, Upload, X,
+  Shirt, Upload, X, Search,
 } from "lucide-react";
+import { SkinViewer3D } from "@/components/launcher/SkinViewer3D";
 
 type McAccount = {
   id: string;
