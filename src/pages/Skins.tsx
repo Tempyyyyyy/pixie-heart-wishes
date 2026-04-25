@@ -49,12 +49,19 @@ const Skins = () => {
     let cancelled = false;
     setLoading(true);
     fetch(`${NAMEMC_FN}?action=skins&period=${period}&page=${page}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((d) => {
         if (!cancelled) setSkins(d.skins ?? []);
       })
-      .catch(() => {
-        if (!cancelled) toast({ title: "Не удалось загрузить скины", variant: "destructive" });
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("Skin fetch error:", err);
+          toast({ title: "API недоступен", description: "NameMC временно блокирует запросы. Попробуй позже.", variant: "destructive" });
+          setSkins([]);
+        }
       })
       .finally(() => !cancelled && setLoading(false));
     return () => {
