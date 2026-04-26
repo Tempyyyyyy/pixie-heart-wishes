@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Camera, LogIn, Heart, Package, Trophy, Loader2, Search,
-  ImagePlus, Pencil, Share2, Settings, Clock, Download, Layers,
+  ImagePlus, Pencil, Share2, Settings, Clock, Download, Layers, X,
 } from "lucide-react";
 import { searchMods, type ModrinthHit } from "@/lib/modrinth";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
