@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Layout } from "@/components/launcher/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Camera, LogIn, Heart, Package, Trophy, Loader2, Search,
-  ImagePlus, Pencil, Share2, Settings, Clock, Download, Layers,
+  ImagePlus, Pencil, Share2, Settings, Clock, Download, Layers, X,
 } from "lucide-react";
 import { searchMods, type ModrinthHit } from "@/lib/modrinth";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -114,32 +114,38 @@ const ProfilePage = () => {
       .then(({ data }) => setInstances((data as InstanceCard[]) ?? []));
   }, [viewedId]);
 
-  // Load comments
-  useEffect(() => {
+  const loadComments = useCallback(async () => {
     if (!viewedId) return;
     setLoadingComments(true);
-    supabase
+    const { data: rows } = await supabase
       .from("profile_comments")
-      .select("*, profiles!profile_comments_user_id_fkey(display_name, avatar_url)")
+      .select("id, content, created_at, user_id, profile_id")
       .eq("profile_id", viewedId)
       .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }) => {
-        if (data) {
-          const commentsWithUsers = data.map((c: any) => ({
-            id: c.id,
-            content: c.content,
-            created_at: c.created_at,
-            user_id: c.user_id,
-            profile_id: c.profile_id,
-            user_display_name: c.profiles?.display_name || "Unknown",
-            user_avatar_url: c.profiles?.avatar_url,
-          }));
-          setComments(commentsWithUsers);
-        }
-        setLoadingComments(false);
-      });
+      .limit(50);
+    const list = (rows ?? []) as any[];
+    const userIds = Array.from(new Set(list.map(c => c.user_id)));
+    let profMap = new Map<string, { display_name: string | null; avatar_url: string | null }>();
+    if (userIds.length) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url")
+        .in("id", userIds);
+      (profs ?? []).forEach((p: any) => profMap.set(p.id, p));
+    }
+    setComments(list.map(c => ({
+      id: c.id,
+      content: c.content,
+      created_at: c.created_at,
+      user_id: c.user_id,
+      profile_id: c.profile_id,
+      user_display_name: profMap.get(c.user_id)?.display_name || "Без имени",
+      user_avatar_url: profMap.get(c.user_id)?.avatar_url ?? null,
+    })));
+    setLoadingComments(false);
   }, [viewedId]);
+
+  useEffect(() => { loadComments(); }, [loadComments]);
 
   // Check if current user has liked
   useEffect(() => {
@@ -244,33 +250,19 @@ const ProfilePage = () => {
     const { error } = await supabase.from("profile_comments").insert({
       user_id: user.id,
       profile_id: viewedId,
-      content: newComment.trim(),
+      content: newComment.trim().slice(0, 500),
     });
     setSubmittingComment(false);
     if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
     setNewComment("");
-    // Reload comments
-    supabase
-      .from("profile_comments")
-      .select("*, profiles!profile_comments_user_id_fkey(display_name, avatar_url)")
-      .eq("profile_id", viewedId)
-      .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }) => {
-        if (data) {
-          const commentsWithUsers = data.map((c: any) => ({
-            id: c.id,
-            content: c.content,
-            created_at: c.created_at,
-            user_id: c.user_id,
-            profile_id: c.profile_id,
-            user_display_name: c.profiles?.display_name || "Unknown",
-            user_avatar_url: c.profiles?.avatar_url,
-          }));
-          setComments(commentsWithUsers);
-        }
-      });
+    await loadComments();
     toast({ title: "Комментарий добавлен" });
+  };
+
+  const deleteComment = async (id: string) => {
+    const { error } = await supabase.from("profile_comments").delete().eq("id", id);
+    if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    setComments(prev => prev.filter(c => c.id !== id));
   };
 
   const setFavorite = async (mod: ModrinthHit) => {
@@ -400,10 +392,15 @@ const ProfilePage = () => {
 
           <div className="flex gap-2 md:pb-2 shrink-0">
             <Button variant="outline" onClick={onShare}><Share2 className="w-4 h-4 mr-1.5" />Поделиться</Button>
-            {!isOwnProfile && user && (
-              <Button variant="outline" disabled>
-                <Heart className="w-4 h-4 mr-1.5" />
-                В разработке
+            {user && (
+              <Button
+                variant={hasLiked ? "hero" : "outline"}
+                onClick={toggleLike}
+                disabled={isOwnProfile}
+                title={isOwnProfile ? "Нельзя лайкнуть свой профиль" : hasLiked ? "Убрать лайк" : "Поставить лайк"}
+              >
+                <Heart className={`w-4 h-4 mr-1.5 ${hasLiked ? "fill-current" : ""}`} />
+                {profile?.likes_count ?? 0}
               </Button>
             )}
             {isOwnProfile && (
@@ -503,10 +500,83 @@ const ProfilePage = () => {
 
       {/* === COMMENTS === */}
       <section className="rounded-2xl border border-border bg-card p-5 mb-6 animate-fade-in">
-        <h2 className="font-display font-bold text-lg mb-4">Комментарии</h2>
-        <div className="text-center py-8 text-muted-foreground">
-          В разработке
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display font-bold text-lg">Комментарии</h2>
+          <span className="text-xs text-muted-foreground">{comments.length}</span>
         </div>
+
+        {user ? (
+          <div className="flex gap-2 mb-5">
+            <Avatar className="w-9 h-9 rounded-lg shrink-0">
+              {isOwnProfile && profile?.avatar_url && <AvatarImage src={profile.avatar_url} className="object-cover" />}
+              <AvatarFallback className="rounded-lg bg-primary/20 text-xs">
+                {(user.email || "?").slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 flex gap-2">
+              <Input
+                value={newComment}
+                onChange={e => setNewComment(e.target.value)}
+                placeholder={isOwnProfile ? "Оставь запись на своей стене…" : "Напиши комментарий…"}
+                maxLength={500}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
+              />
+              <Button onClick={submitComment} disabled={submittingComment || !newComment.trim()} variant="hero">
+                {submittingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : "Отправить"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-5 p-3 rounded-lg border border-dashed border-border text-center text-sm text-muted-foreground">
+            Войди, чтобы оставить комментарий
+          </div>
+        )}
+
+        {loadingComments ? (
+          <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+        ) : comments.length === 0 ? (
+          <div className="text-center text-sm text-muted-foreground py-8">
+            Пока нет комментариев. Будь первым!
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {comments.map(c => {
+              const canDelete = user && (user.id === c.user_id || user.id === c.profile_id);
+              return (
+                <div key={c.id} className="flex gap-3 p-3 rounded-xl bg-secondary/30 border border-border group">
+                  <Link to={`/profile/${c.user_id}`} className="shrink-0">
+                    <Avatar className="w-9 h-9 rounded-lg">
+                      {c.user_avatar_url && <AvatarImage src={c.user_avatar_url} className="object-cover" />}
+                      <AvatarFallback className="rounded-lg bg-primary/20 text-xs">
+                        {(c.user_display_name || "?").slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <Link to={`/profile/${c.user_id}`} className="font-semibold text-sm hover:text-primary truncate">
+                        {c.user_display_name}
+                      </Link>
+                      <span className="text-[11px] text-muted-foreground">
+                        {new Date(c.created_at).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <p className="text-sm whitespace-pre-wrap break-words">{c.content}</p>
+                  </div>
+                  {canDelete && (
+                    <button
+                      onClick={() => deleteComment(c.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity self-start text-muted-foreground hover:text-destructive p-1"
+                      aria-label="Удалить"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Mod picker */}

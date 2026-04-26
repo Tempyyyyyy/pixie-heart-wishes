@@ -156,6 +156,9 @@ async function getTopServers(): Promise<ServerHit[]> {
 }
 
 // ----- SKINS -----
+// Источник трендовых скинов — NameMC. Из выдачи отбрасываем карточки, в которых
+// в превью попал флаг страны / эмодзи / аватарка автора (это случается у юзеров
+// с эмодзи в нике): принимаем ТОЛЬКО настоящие рендеры скинов с s.namemc.com.
 
 type SkinHit = {
   id: string;
@@ -169,39 +172,40 @@ function decode(s: string): string {
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ");
 }
 
+function isRealSkinImage(src: string): boolean {
+  if (!src) return false;
+  // Только домен NameMC-рендеров
+  if (!/^https?:\/\/s\.namemc\.com\//i.test(src)) return false;
+  // Явные мусорные пути — флаги, эмодзи, аватарки авторов
+  if (/\/flag\//i.test(src)) return false;
+  if (/\/avatar\//i.test(src)) return false;
+  if (/\/emoji\//i.test(src)) return false;
+  if (/twemoji/i.test(src)) return false;
+  // Настоящий рендер скина — это /3d/skin/...
+  return /\/3d\/skin\//i.test(src);
+}
+
 function parseSkins(html: string): SkinHit[] {
   const out: SkinHit[] = [];
   const seen = new Set<string>();
-  // Несколько вариантов разметки
   const patterns = [
     /<a[^>]+href="\/skin\/([a-f0-9]+)"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/g,
     /href="\/skin\/([a-f0-9]+)"[\s\S]{0,300}?data-src="([^"]+)"/g,
-    /\/skin\/([a-f0-9]{8,})[\s\S]{0,500}?(https:\/\/s\.namemc\.com\/[^"'\s]+\.png)/g,
+    /\/skin\/([a-f0-9]{8,})[\s\S]{0,500}?(https:\/\/s\.namemc\.com\/3d\/skin\/[^"'\s]+\.png)/g,
   ];
   for (const re of patterns) {
     let m: RegExpExecArray | null;
     while ((m = re.exec(html)) !== null) {
       const id = m[1];
       if (seen.has(id)) continue;
+      const candidate = decode(m[2]);
+      // ВАЖНО: если превью не настоящий рендер скина (флаг / эмодзи / аватар) —
+      // пропускаем карточку целиком, ничего не подменяем.
+      if (!isRealSkinImage(candidate)) continue;
       seen.add(id);
       out.push({
         id,
-        image: decode(m[2]),
-        url: `https://namemc.com/skin/${id}`,
-      });
-    }
-  }
-  // Резервный: только id из ссылок, картинку строим сами через s.namemc.com
-  if (out.length < 10) {
-    const re = /href="\/skin\/([a-f0-9]{8,})"/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(html)) !== null) {
-      const id = m[1];
-      if (seen.has(id)) continue;
-      seen.add(id);
-      out.push({
-        id,
-        image: `https://s.namemc.com/3d/skin/body/${id}.png?width=256`,
+        image: candidate,
         url: `https://namemc.com/skin/${id}`,
       });
     }
