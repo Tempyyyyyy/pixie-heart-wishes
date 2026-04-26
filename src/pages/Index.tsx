@@ -10,6 +10,8 @@ import { useTheme, THEME_PRESETS } from "@/lib/launchSettings";
 import { supabase } from "@/integrations/supabase/client";
 import heroBg from "@/assets/hero-bg.jpg";
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+
 type NewsItem = {
   title: string;
   link: string;
@@ -71,7 +73,10 @@ const Index = () => {
 
         // Get total mods installed across all instances
         const { data: instances } = await supabase.from("instances").select("mods").eq("user_id", user.id);
-        const totalMods = instances?.reduce((sum, inst) => sum + (inst.mods?.length || 0), 0) ?? 0;
+        const totalMods = instances?.reduce((sum, inst) => {
+          const mods = inst.mods as any[];
+          return sum + (mods?.length || 0);
+        }, 0) ?? 0;
 
         // Get friends count
         const { count: friendsCount } = await supabase.from("friendships")
