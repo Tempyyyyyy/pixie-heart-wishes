@@ -138,13 +138,11 @@ export type Database = {
           banner_url: string | null
           created_at: string
           display_name: string | null
-          display_name_color: string | null
           favorite_mod_icon: string | null
           favorite_mod_id: string | null
           favorite_mod_name: string | null
           hours_played: number
           id: string
-          likes_count: number
           mod_installs: number
           updated_at: string
         }
@@ -154,13 +152,11 @@ export type Database = {
           banner_url?: string | null
           created_at?: string
           display_name?: string | null
-          display_name_color?: string | null
           favorite_mod_icon?: string | null
           favorite_mod_id?: string | null
           favorite_mod_name?: string | null
           hours_played?: number
           id: string
-          likes_count?: number
           mod_installs?: number
           updated_at?: string
         }
@@ -170,60 +166,13 @@ export type Database = {
           banner_url?: string | null
           created_at?: string
           display_name?: string | null
-          display_name_color?: string | null
           favorite_mod_icon?: string | null
           favorite_mod_id?: string | null
           favorite_mod_name?: string | null
           hours_played?: number
           id?: string
-          likes_count?: number
           mod_installs?: number
           updated_at?: string
-        }
-        Relationships: []
-      }
-      profile_comments: {
-        Row: {
-          content: string
-          created_at: string
-          id: string
-          profile_id: string
-          user_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          id?: string
-          profile_id: string
-          user_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          id?: string
-          profile_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      profile_likes: {
-        Row: {
-          created_at: string
-          id: string
-          profile_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          profile_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          profile_id?: string
-          user_id?: string
         }
         Relationships: []
       }
