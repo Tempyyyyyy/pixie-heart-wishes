@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Layout } from "@/components/launcher/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,32 +114,38 @@ const ProfilePage = () => {
       .then(({ data }) => setInstances((data as InstanceCard[]) ?? []));
   }, [viewedId]);
 
-  // Load comments
-  useEffect(() => {
+  const loadComments = useCallback(async () => {
     if (!viewedId) return;
     setLoadingComments(true);
-    supabase
+    const { data: rows } = await supabase
       .from("profile_comments")
-      .select("*, profiles!profile_comments_user_id_fkey(display_name, avatar_url)")
+      .select("id, content, created_at, user_id, profile_id")
       .eq("profile_id", viewedId)
       .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }) => {
-        if (data) {
-          const commentsWithUsers = data.map((c: any) => ({
-            id: c.id,
-            content: c.content,
-            created_at: c.created_at,
-            user_id: c.user_id,
-            profile_id: c.profile_id,
-            user_display_name: c.profiles?.display_name || "Unknown",
-            user_avatar_url: c.profiles?.avatar_url,
-          }));
-          setComments(commentsWithUsers);
-        }
-        setLoadingComments(false);
-      });
+      .limit(50);
+    const list = (rows ?? []) as any[];
+    const userIds = Array.from(new Set(list.map(c => c.user_id)));
+    let profMap = new Map<string, { display_name: string | null; avatar_url: string | null }>();
+    if (userIds.length) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url")
+        .in("id", userIds);
+      (profs ?? []).forEach((p: any) => profMap.set(p.id, p));
+    }
+    setComments(list.map(c => ({
+      id: c.id,
+      content: c.content,
+      created_at: c.created_at,
+      user_id: c.user_id,
+      profile_id: c.profile_id,
+      user_display_name: profMap.get(c.user_id)?.display_name || "Без имени",
+      user_avatar_url: profMap.get(c.user_id)?.avatar_url ?? null,
+    })));
+    setLoadingComments(false);
   }, [viewedId]);
+
+  useEffect(() => { loadComments(); }, [loadComments]);
 
   // Check if current user has liked
   useEffect(() => {
