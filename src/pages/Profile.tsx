@@ -392,10 +392,15 @@ const ProfilePage = () => {
 
           <div className="flex gap-2 md:pb-2 shrink-0">
             <Button variant="outline" onClick={onShare}><Share2 className="w-4 h-4 mr-1.5" />Поделиться</Button>
-            {!isOwnProfile && user && (
-              <Button variant="outline" disabled>
-                <Heart className="w-4 h-4 mr-1.5" />
-                В разработке
+            {user && (
+              <Button
+                variant={hasLiked ? "hero" : "outline"}
+                onClick={toggleLike}
+                disabled={isOwnProfile}
+                title={isOwnProfile ? "Нельзя лайкнуть свой профиль" : hasLiked ? "Убрать лайк" : "Поставить лайк"}
+              >
+                <Heart className={`w-4 h-4 mr-1.5 ${hasLiked ? "fill-current" : ""}`} />
+                {profile?.likes_count ?? 0}
               </Button>
             )}
             {isOwnProfile && (
