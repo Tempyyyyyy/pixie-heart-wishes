@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Play, Trash2, Pencil, Package, Loader2, LogIn, Search, X, Replace, Layers, Calendar, FileArchive } from "lucide-react";
-import { searchMods, type ModrinthHit } from "@/lib/modrinth";
+import { searchMods, searchProjects, type ModrinthHit } from "@/lib/modrinth";
 import { AuthDialog } from "@/components/launcher/AuthDialog";
 import { LaunchMinecraftButton } from "@/components/launcher/LaunchMinecraftButton";
 import { Link } from "react-router-dom";
@@ -113,12 +113,31 @@ const InstancesPage = () => {
       toast({ title: "Сборка обновлена" });
     } else {
       const baseMods: ModInInstance[] = [];
-      const mods = includePixieMod
-        ? [
+      let mods = baseMods;
+      
+      if (includePixieMod) {
+        // Search for pixie-heart-wishes mod for the selected version
+        const { hits } = await searchProjects({ 
+          query: "pixie-heart-wishes", 
+          projectType: "mod", 
+          gameVersion: form.mc_version,
+          limit: 1 
+        });
+        if (hits.length > 0) {
+          const mod = hits[0];
+          mods = [
+            ...baseMods,
+            { id: mod.project_id, slug: mod.slug, name: mod.title, icon: mod.icon_url } as ModInInstance,
+          ];
+        } else {
+          // Fallback if version not found
+          mods = [
             ...baseMods,
             { id: "pixie-heart-wishes", slug: "pixie-heart-wishes", name: "Pixie Heart Wishes", icon: null } as ModInInstance,
-          ]
-        : baseMods;
+          ];
+        }
+      }
+      
       const { error } = await supabase.from("instances").insert({ ...form, user_id: user.id, mods });
       if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
       toast({ title: "Сборка создана" });
