@@ -2,14 +2,6 @@
   "schema": 1,
   "modId": "pixie-heart-wishes",
   "displayName": "Pixie Heart Wishes",
-  "releases": [
-    {
-      "mcVersionRange": ">=1.14.0 <=1.21.10",
-      "loader": "fabric",
-      "url": "https://github.com/Tempyyyyyy/pixie-heart-wishes/releases/download/pixie-mod-v1.0.0/pixiestape-client-1.0.0.jar",
-      "sha1": "fee3cf37f70c058187dec836bee69ca0f8f7fdaa",
-      "filename": "pixiestape-client-1.0.0.jar"
-    }
-  ]
+  "releases": []
 }
 
