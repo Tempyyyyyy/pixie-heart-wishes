@@ -217,11 +217,17 @@ async function getTopSkins(period: string, page: number): Promise<SkinHit[]> {
   const key = `skins:${period}:${page}`;
   const cached = getCached<SkinHit[]>(key);
   if (cached) return cached;
-  const url = `https://namemc.com/minecraft-skins/trending/${period}?page=${page}`;
-  const html = await fetchHtml(url);
-  const data = parseSkins(html);
-  setCached(key, data);
-  return data;
+  try {
+    const url = `https://namemc.com/minecraft-skins/trending/${period}?page=${page}`;
+    const html = await fetchHtml(url);
+    const data = parseSkins(html);
+    setCached(key, data);
+    return data;
+  } catch (e) {
+    console.error("Failed to fetch skins from NameMC:", e);
+    // Return empty array on error instead of crashing
+    return [];
+  }
 }
 
 // ----- PROFILE + CAPES -----
