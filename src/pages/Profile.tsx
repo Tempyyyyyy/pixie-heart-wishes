@@ -250,33 +250,19 @@ const ProfilePage = () => {
     const { error } = await supabase.from("profile_comments").insert({
       user_id: user.id,
       profile_id: viewedId,
-      content: newComment.trim(),
+      content: newComment.trim().slice(0, 500),
     });
     setSubmittingComment(false);
     if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
     setNewComment("");
-    // Reload comments
-    supabase
-      .from("profile_comments")
-      .select("*, profiles!profile_comments_user_id_fkey(display_name, avatar_url)")
-      .eq("profile_id", viewedId)
-      .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }) => {
-        if (data) {
-          const commentsWithUsers = data.map((c: any) => ({
-            id: c.id,
-            content: c.content,
-            created_at: c.created_at,
-            user_id: c.user_id,
-            profile_id: c.profile_id,
-            user_display_name: c.profiles?.display_name || "Unknown",
-            user_avatar_url: c.profiles?.avatar_url,
-          }));
-          setComments(commentsWithUsers);
-        }
-      });
+    await loadComments();
     toast({ title: "Комментарий добавлен" });
+  };
+
+  const deleteComment = async (id: string) => {
+    const { error } = await supabase.from("profile_comments").delete().eq("id", id);
+    if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+    setComments(prev => prev.filter(c => c.id !== id));
   };
 
   const setFavorite = async (mod: ModrinthHit) => {
