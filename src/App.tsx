@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppGlobals } from "@/components/AppGlobals";
 import { runMigrations } from "@/lib/migration";
+import { isElectron } from "@/lib/environment";
 import Index from "./pages/Index.tsx";
 import Library from "./pages/Library.tsx";
 import Modpacks from "./pages/Modpacks.tsx";
@@ -55,15 +56,19 @@ const App = () => {
     // runMigrations();
   }, []);
 
+  const environmentClass = isElectron() ? 'electron-app' : 'website-app';
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <HashRouter>
-          <AppGlobals>
-            <AnimatedRoutes />
-          </AppGlobals>
+          <div className={environmentClass}>
+            <AppGlobals>
+              <AnimatedRoutes />
+            </AppGlobals>
+          </div>
         </HashRouter>
       </TooltipProvider>
     </QueryClientProvider>

@@ -80,6 +80,16 @@
     font-family: 'Space Grotesk', sans-serif;
     @apply tracking-tight;
   }
+
+  /* Website-specific styles (can be customized independently) */
+  .website-app {
+    /* Add website-specific overrides here */
+  }
+
+  /* Electron launcher styles (preserve current design) */
+  .electron-app {
+    /* Keep current launcher design */
+  }
 }
 
 @layer utilities {
