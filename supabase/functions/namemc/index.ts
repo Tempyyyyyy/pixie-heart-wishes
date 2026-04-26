@@ -169,6 +169,20 @@ function decode(s: string): string {
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ");
 }
 
+function isValidSkinImage(src: string): boolean {
+  // Принимаем только настоящие рендеры скинов с s.namemc.com.
+  // Отсекаем флаги стран, эмодзи Twemoji, аватарки авторов и прочее.
+  if (!src) return false;
+  if (!/^https?:\/\/s\.namemc\.com\//i.test(src)) return false;
+  // s.namemc.com/3d/skin/... или s.namemc.com/i/<hash>.png — это скины.
+  // Флаги обычно лежат на /flag/ или /img/flag/, аватарки — на /avatar/.
+  if (/\/flag\//i.test(src)) return false;
+  if (/\/avatar\//i.test(src)) return false;
+  if (/\/emoji\//i.test(src)) return false;
+  if (/twemoji/i.test(src)) return false;
+  return /\/(3d\/skin|i)\//i.test(src) || /\.png(\?|$)/i.test(src);
+}
+
 function parseSkins(html: string): SkinHit[] {
   const out: SkinHit[] = [];
   const seen = new Set<string>();
@@ -183,10 +197,16 @@ function parseSkins(html: string): SkinHit[] {
     while ((m = re.exec(html)) !== null) {
       const id = m[1];
       if (seen.has(id)) continue;
+      const candidate = decode(m[2]);
+      // Если картинка не выглядит как скин (флаг/эмодзи/аватар) — строим
+      // канонический URL рендера скина по id, а не используем мусор.
+      const image = isValidSkinImage(candidate)
+        ? candidate
+        : `https://s.namemc.com/3d/skin/body/${id}.png?width=256`;
       seen.add(id);
       out.push({
         id,
-        image: decode(m[2]),
+        image,
         url: `https://namemc.com/skin/${id}`,
       });
     }
