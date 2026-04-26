@@ -7,13 +7,8 @@ import { Layout } from "@/components/launcher/Layout";
 import { ModDetailDialog } from "@/components/launcher/ModDetailDialog";
 import { searchProjects, type ModrinthHit } from "@/lib/modrinth";
 import { useTheme, THEME_PRESETS } from "@/lib/launchSettings";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 import heroBg from "@/assets/hero-bg.jpg";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 type NewsItem = {
   title: string;
