@@ -83,7 +83,11 @@
 
   /* Website-specific styles (can be customized independently) */
   .website-app {
-    /* Add website-specific overrides here */
+    --background: 220 50% 8%;
+    --card: 220 40% 12%;
+    --primary: 220 80% 60%;
+    --primary-glow: 200 100% 60%;
+    --gradient-hero: radial-gradient(ellipse at top, hsl(220 80% 60% / 0.3), transparent 60%);
   }
 
   /* Electron launcher styles (preserve current design) */
