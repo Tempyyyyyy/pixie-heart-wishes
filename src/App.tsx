@@ -51,7 +51,8 @@ const AnimatedRoutes = () => {
 
 const App = () => {
   useEffect(() => {
-    runMigrations();
+    // Temporarily disabled to debug startup issue
+    // runMigrations();
   }, []);
 
   return (
