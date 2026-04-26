@@ -500,10 +500,83 @@ const ProfilePage = () => {
 
       {/* === COMMENTS === */}
       <section className="rounded-2xl border border-border bg-card p-5 mb-6 animate-fade-in">
-        <h2 className="font-display font-bold text-lg mb-4">Комментарии</h2>
-        <div className="text-center py-8 text-muted-foreground">
-          В разработке
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display font-bold text-lg">Комментарии</h2>
+          <span className="text-xs text-muted-foreground">{comments.length}</span>
         </div>
+
+        {user ? (
+          <div className="flex gap-2 mb-5">
+            <Avatar className="w-9 h-9 rounded-lg shrink-0">
+              {isOwnProfile && profile?.avatar_url && <AvatarImage src={profile.avatar_url} className="object-cover" />}
+              <AvatarFallback className="rounded-lg bg-primary/20 text-xs">
+                {(user.email || "?").slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 flex gap-2">
+              <Input
+                value={newComment}
+                onChange={e => setNewComment(e.target.value)}
+                placeholder={isOwnProfile ? "Оставь запись на своей стене…" : "Напиши комментарий…"}
+                maxLength={500}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
+              />
+              <Button onClick={submitComment} disabled={submittingComment || !newComment.trim()} variant="hero">
+                {submittingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : "Отправить"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-5 p-3 rounded-lg border border-dashed border-border text-center text-sm text-muted-foreground">
+            Войди, чтобы оставить комментарий
+          </div>
+        )}
+
+        {loadingComments ? (
+          <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+        ) : comments.length === 0 ? (
+          <div className="text-center text-sm text-muted-foreground py-8">
+            Пока нет комментариев. Будь первым!
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {comments.map(c => {
+              const canDelete = user && (user.id === c.user_id || user.id === c.profile_id);
+              return (
+                <div key={c.id} className="flex gap-3 p-3 rounded-xl bg-secondary/30 border border-border group">
+                  <Link to={`/profile/${c.user_id}`} className="shrink-0">
+                    <Avatar className="w-9 h-9 rounded-lg">
+                      {c.user_avatar_url && <AvatarImage src={c.user_avatar_url} className="object-cover" />}
+                      <AvatarFallback className="rounded-lg bg-primary/20 text-xs">
+                        {(c.user_display_name || "?").slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <Link to={`/profile/${c.user_id}`} className="font-semibold text-sm hover:text-primary truncate">
+                        {c.user_display_name}
+                      </Link>
+                      <span className="text-[11px] text-muted-foreground">
+                        {new Date(c.created_at).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <p className="text-sm whitespace-pre-wrap break-words">{c.content}</p>
+                  </div>
+                  {canDelete && (
+                    <button
+                      onClick={() => deleteComment(c.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity self-start text-muted-foreground hover:text-destructive p-1"
+                      aria-label="Удалить"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Mod picker */}
