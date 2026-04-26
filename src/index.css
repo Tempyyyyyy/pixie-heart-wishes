@@ -166,4 +166,20 @@
     background-size: 200% 100%;
     animation: shimmer 2s linear infinite;
   }
+
+  @keyframes gradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 3s ease infinite;
+  }
+
+  .delay-1000 {
+    animation-delay: 1s;
+  }
+  .delay-2000 {
+    animation-delay: 2s;
+  }
 }
