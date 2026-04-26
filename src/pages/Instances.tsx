@@ -113,38 +113,12 @@ const InstancesPage = () => {
       toast({ title: "Сборка обновлена" });
     } else {
       const baseMods: ModInInstance[] = [];
-      let mods = baseMods;
-      
-      if (includePixieMod) {
-        try {
-          // Search for pixie-heart-wishes mod for the selected version
-          const result = await searchProjects({ 
-            query: "pixie-heart-wishes", 
-            projectType: "mod", 
-            gameVersion: form.mc_version,
-            limit: 1 
-          });
-          if (result && result.hits && result.hits.length > 0) {
-            const mod = result.hits[0];
-            mods = [
-              ...baseMods,
-              { id: mod.project_id, slug: mod.slug, name: mod.title, icon: mod.icon_url } as ModInInstance,
-            ];
-          } else {
-            // Fallback if version not found
-            mods = [
-              ...baseMods,
-              { id: "pixie-heart-wishes", slug: "pixie-heart-wishes", name: "Pixie Heart Wishes", icon: null } as ModInInstance,
-            ];
-          }
-        } catch (e) {
-          // Fallback on error
-          mods = [
+      const mods = includePixieMod
+        ? [
             ...baseMods,
             { id: "pixie-heart-wishes", slug: "pixie-heart-wishes", name: "Pixie Heart Wishes", icon: null } as ModInInstance,
-          ];
-        }
-      }
+          ]
+        : baseMods;
       
       const { error } = await supabase.from("instances").insert({ ...form, user_id: user.id, mods });
       if (error) return toast({ title: "Ошибка", description: error.message, variant: "destructive" });
