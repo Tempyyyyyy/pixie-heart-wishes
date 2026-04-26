@@ -40,7 +40,7 @@ const InstancesPage = () => {
   // Create / edit instance
   const [editing, setEditing] = useState<Instance | null>(null);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", mc_version: "1.21.10", loader: "fabric" });
+  const [form, setForm] = useState({ name: "", description: "", mc_version: "1.21.4", loader: "fabric" });
   const [includePixieMod, setIncludePixieMod] = useState(true);
 
   // Mod manager
@@ -91,7 +91,7 @@ const InstancesPage = () => {
   }, [search, pickerFor]);
 
   const openCreate = () => {
-    setForm({ name: "", description: "", mc_version: "1.21.10", loader: "fabric" });
+    setForm({ name: "", description: "", mc_version: "1.21.4", loader: "fabric" });
     setEditing(null);
     setCreating(true);
     setIncludePixieMod(true);
@@ -163,7 +163,7 @@ const InstancesPage = () => {
     // Создаём заготовку в БД
     const { data: created, error: insErr } = await supabase
       .from("instances")
-      .insert({ name, user_id: user.id, mc_version: "1.21.10", loader: "fabric", mods: [] })
+      .insert({ name, user_id: user.id, mc_version: "1.21.4", loader: "fabric", mods: [] })
       .select()
       .single();
     if (insErr || !created) return toast({ title: "Ошибка", description: insErr?.message, variant: "destructive" });
