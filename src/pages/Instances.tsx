@@ -41,7 +41,7 @@ const InstancesPage = () => {
   const [editing, setEditing] = useState<Instance | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", mc_version: "1.21.4", loader: "fabric" });
-  const [includePixieMod, setIncludePixieMod] = useState(true);
+  const [includePixieMod, setIncludePixieMod] = useState(false);
 
   // Mod manager
   const [managingId, setManagingId] = useState<string | null>(null);
@@ -94,7 +94,7 @@ const InstancesPage = () => {
     setForm({ name: "", description: "", mc_version: "1.21.4", loader: "fabric" });
     setEditing(null);
     setCreating(true);
-    setIncludePixieMod(true);
+    setIncludePixieMod(false);
   };
 
   const openEdit = (inst: Instance) => {
