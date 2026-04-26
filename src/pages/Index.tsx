@@ -1,326 +1,128 @@
-import { useEffect, useState } from "react";
-import { Play, Flame, TrendingUp, Package, Users, ArrowRight, Sparkles, Box, Loader2, Download, Newspaper, ExternalLink, Layers } from "lucide-react";
+import { Download, Zap, Shield, CheckCircle, ArrowRight, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Layout } from "@/components/launcher/Layout";
-import { ModDetailDialog } from "@/components/launcher/ModDetailDialog";
-import { searchProjects, type ModrinthHit } from "@/lib/modrinth";
-import { useTheme, THEME_PRESETS } from "@/lib/launchSettings";
-import { supabase } from "@/integrations/supabase/client";
-import heroBg from "@/assets/hero-bg.jpg";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-
-type NewsItem = {
-  title: string;
-  link: string;
-  description: string;
-  image: string | null;
-  pubDate: string;
-  source: string;
-};
-
-
-const formatNumber = (n: number) =>
-  n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M`
-  : n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}K`
-  : String(n);
+import { isElectron } from "@/lib/environment";
 
 const Index = () => {
-  const [popularPacks, setPopularPacks] = useState<ModrinthHit[]>([]);
-  const [popularMods, setPopularMods] = useState<ModrinthHit[]>([]);
-  const [news, setNews] = useState<NewsItem[]>([]);
-  const [loadingPacks, setLoadingPacks] = useState(true);
-  const [loadingNews, setLoadingNews] = useState(true);
-  const [selected, setSelected] = useState<ModrinthHit | null>(null);
-  const [stats, setStats] = useState<{ icon: any; value: string; label: string }[]>([
-    { icon: TrendingUp, value: "0", label: "Часов в игре" },
-    { icon: Package, value: "0", label: "Установлено модов" },
-    { icon: Users, value: "0", label: "Друзей онлайн" },
-  ]);
-
-  const { theme } = useTheme();
-  const currentThemeName = theme.name.split(" ")[0];
-  const isElectron = !!(window as any).electronAPI?.isElectron;
-
-  useEffect(() => {
-    Promise.all([
-      searchProjects({ projectType: "modpack", sort: "downloads", limit: 4 }),
-      searchProjects({ projectType: "mod", sort: "downloads", limit: 6 }),
-    ])
-      .then(([packs, mods]) => {
-        setPopularPacks(packs.hits);
-        setPopularMods(mods.hits);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingPacks(false));
-
-    fetch(`${SUPABASE_URL}/functions/v1/news`)
-      .then(r => r.json())
-      .then(d => setNews((d.items ?? []).slice(0, 6)))
-      .catch(() => setNews([]))
-      .finally(() => setLoadingNews(false));
-
-    // Fetch real stats
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Get user's hours played
-        const { data: profile } = await supabase.from("profiles").select("hours_played").eq("id", user.id).single();
-        const hours = profile?.hours_played ?? 0;
-        const hoursFormatted = Math.floor(hours / 3600);
-
-        // Get total mods installed across all instances
-        const { data: instances } = await supabase.from("instances").select("mods").eq("user_id", user.id);
-        const totalMods = instances?.reduce((sum, inst) => {
-          const mods = inst.mods as any[];
-          return sum + (mods?.length || 0);
-        }, 0) ?? 0;
-
-        // Get friends count
-        const { count: friendsCount } = await supabase.from("friendships")
-          .select("*", { count: "exact", head: true })
-          .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
-          .eq("status", "accepted");
-
-        setStats([
-          { icon: TrendingUp, value: String(hoursFormatted), label: "Часов в игре" },
-          { icon: Package, value: String(totalMods), label: "Установлено модов" },
-          { icon: Users, value: String(friendsCount ?? 0), label: "Друзей" },
-        ]);
-      }
-    })();
-  }, []);
+  const isElectronEnv = isElectron();
 
   return (
     <Layout>
-      {/* HERO */}
-      <section className="relative overflow-hidden rounded-2xl md:rounded-[2rem] border border-border card-shadow animate-fade-in">
-        <img
-          src={heroBg}
-          alt="Minecraft Nether dramatic landscape"
-          width={1920}
-          height={1088}
-          className="absolute inset-0 w-full h-full object-cover opacity-50"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/30" />
-        <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
-
-        <div className="relative grid lg:grid-cols-[1fr_360px] gap-6 lg:gap-8 p-5 sm:p-8 md:p-12">
-          <div className="flex flex-col justify-center max-w-2xl">
-            <div className="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full bg-primary/15 border border-primary/40 text-xs font-medium text-primary mb-4 md:mb-6">
-              <Flame className="w-3.5 h-3.5" />
-              Тема {currentThemeName} · обновление 0.3
-            </div>
-
-            <h1 className="font-display font-bold text-3xl sm:text-4xl md:text-6xl lg:text-7xl leading-[1.05] mb-4 md:mb-6">
-              Твой <span className="gradient-text">кастомный</span> PixieClient.
-              <br />
-              Один клик — и ты в игре.
-            </h1>
-
-            <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-6 md:mb-8 max-w-xl">
-              Тысячи модов, готовые сборки, шейдеры и текстур-паки прямо из Modrinth.
-              Серверы, новости и профиль в стиле Steam — всё в одном кастомном интерфейсе.
-            </p>
-
-            <div className="flex flex-wrap gap-3">
-              <Button asChild variant="hero" size="lg" className="rounded-full">
-                <Link to="/instances">
-                  <Layers className="w-4 h-4 mr-2" />
-                  Мои сборки
-                </Link>
+      {/* HERO SECTION */}
+      <section className="relative py-20 md:py-32">
+        <div className="max-w-6xl mx-auto px-4 text-center">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+            The Ultimate Minecraft Experience
+          </h1>
+          <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
+            Fast, smooth, and optimized for maximum performance. Join thousands of players who trust PixieClient.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            {!isElectronEnv && (
+              <Button asChild size="lg" className="rounded-full text-lg px-8 py-6">
+                <a href="https://github.com/Tempyyyyyy/pixie-heart-wishes/releases/latest" target="_blank" rel="noopener noreferrer">
+                  <Download className="w-5 h-5 mr-2" />
+                  DOWNLOAD for Windows
+                </a>
               </Button>
-              
-              {!isElectron && (
-                <Button asChild variant="outline" size="lg" className="rounded-full bg-secondary/40 border-border hover:bg-secondary">
-                  <a href="https://github.com/Tempyyyyyy/pixie-heart-wishes/releases/latest" target="_blank" rel="noopener noreferrer">
-                    <Download className="w-4 h-4 mr-2" />
-                    Скачать PixieClient
-                  </a>
-                </Button>
-              )}
-
-              <Button asChild variant="outline" size="lg" className="rounded-full bg-secondary/40 border-border hover:bg-secondary">
-                <Link to="/modpacks">
-                  Сборки сообщества
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
-              </Button>
-            </div>
+            )}
+            
+            <Button asChild size="lg" variant="outline" className="rounded-full text-lg px-8 py-6">
+              <Link to="/instances">
+                <Play className="w-5 h-5 mr-2" />
+                Launch PixieClient
+              </Link>
+            </Button>
           </div>
 
-          {/* Stats column */}
-          <div className="grid grid-cols-3 lg:grid-cols-1 gap-3 lg:gap-4 lg:justify-center">
-            {stats.map(({ icon: Icon, value, label }) => (
-              <div
-                key={label}
-                className="rounded-xl lg:rounded-2xl border border-border bg-card/70 backdrop-blur-md p-3 lg:p-5 hover:border-primary/40 transition-colors"
-              >
-                <Icon className="w-4 h-4 lg:w-5 lg:h-5 text-primary mb-2 lg:mb-3" />
-                <div className="font-display font-bold text-lg lg:text-3xl mb-0.5 lg:mb-1">{value}</div>
-                <div className="text-[10px] lg:text-xs text-muted-foreground leading-tight">{label}</div>
+          <p className="text-sm text-muted-foreground mt-6">
+            Also available for macOS Intel, macOS Apple Silicon and Linux
+          </p>
+        </div>
+      </section>
+
+      {/* FEATURES SECTION */}
+      <section className="py-16 md:py-24">
+        <div className="max-w-6xl mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">See It In Action</h2>
+          <p className="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
+            Experience the difference with PixieClient's powerful features
+          </p>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center p-6 rounded-2xl border border-border bg-card">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
+                <Zap className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Smooth Performance</h3>
+              <p className="text-muted-foreground">Experience buttery smooth gameplay</p>
+            </div>
+
+            <div className="text-center p-6 rounded-2xl border border-border bg-card">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
+                <Shield className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Easy Profile Management</h3>
+              <p className="text-muted-foreground">Switch between profiles instantly</p>
+            </div>
+
+            <div className="text-center p-6 rounded-2xl border border-border bg-card">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
+                <Download className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Mod Integration</h3>
+              <p className="text-muted-foreground">Install mods with one click</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* WHY CHOOSE SECTION */}
+      <section className="py-16 md:py-24 bg-secondary/30">
+        <div className="max-w-6xl mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Why Choose PixieClient?</h2>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { icon: Zap, title: "Lightning Fast", desc: "Quick startup and fast mod loading" },
+              { icon: Play, title: "High FPS", desc: "Optimized for maximum performance" },
+              { icon: Shield, title: "Trusted", desc: "Used by thousands of players" },
+              { icon: CheckCircle, title: "Easy to Use", desc: "Simple and intuitive interface" },
+              { icon: Download, title: "Mod Support", desc: "Full Fabric mod compatibility" },
+              { icon: ArrowRight, title: "Auto Updates", desc: "Always up to date with latest features" },
+            ].map((feature, i) => (
+              <div key={i} className="flex gap-4 p-4 rounded-xl border border-border bg-card">
+                <feature.icon className="w-6 h-6 text-primary shrink-0" />
+                <div>
+                  <h3 className="font-bold mb-1">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground">{feature.desc}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* NEWS + COMPACT MODPACKS GRID */}
-      <section className="mt-8 md:mt-12 grid lg:grid-cols-[1fr_360px] gap-6">
-        {/* News column */}
-        <div>
-          <div className="flex items-end justify-between mb-4 md:mb-5 gap-3">
-            <div className="min-w-0">
-              <h2 className="font-display font-bold text-xl md:text-3xl flex items-center gap-2">
-                <Newspaper className="w-5 h-5 md:w-7 md:h-7 text-primary shrink-0" />
-                <span className="truncate">Новости Minecraft</span>
-              </h2>
-              <p className="text-muted-foreground text-xs md:text-sm mt-1 hidden sm:block">Свежие истории сообщества и обновления</p>
-            </div>
-            <Link to="/news" className="text-xs md:text-sm font-medium text-primary hover:text-primary-glow transition-colors flex items-center gap-1 shrink-0">
-              Все <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            </Link>
-          </div>
-
-          {loadingNews ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          ) : news.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground text-sm rounded-2xl border border-border bg-card">
-              Не удалось загрузить новости.
-            </div>
-          ) : (
-            <div className="grid sm:grid-cols-2 gap-4">
-              {news.map((n, i) => (
-                <a
-                  key={n.link + i}
-                  href={n.link}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="group rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/50 hover:-translate-y-1 transition-all flex flex-col"
-                >
-                  <div className="aspect-video bg-secondary border-b border-border overflow-hidden">
-                    {n.image ? (
-                      <img
-                        src={n.image}
-                        alt={n.title}
-                        loading="lazy"
-                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = heroBg; }}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <img src={heroBg} alt="" className="w-full h-full object-cover" />
-                    )}
-                  </div>
-                  <div className="p-4 flex-1 flex flex-col">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="secondary" className="text-[10px]">{n.source}</Badge>
-                      {n.pubDate && (
-                        <span className="text-[10px] text-muted-foreground">
-                          {new Date(n.pubDate).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}
-                        </span>
-                      )}
-                    </div>
-                    <div className="font-display font-bold text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors mb-1">
-                      {n.title}
-                    </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2 mt-auto">{n.description}</p>
-                  </div>
-                </a>
-              ))}
-            </div>
+      {/* CTA SECTION */}
+      <section className="py-16 md:py-24">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Get Started?</h2>
+          <p className="text-lg text-muted-foreground mb-8">
+            Download PixieClient now and take your Minecraft experience to the next level
+          </p>
+          
+          {!isElectronEnv && (
+            <Button asChild size="lg" className="rounded-full text-lg px-8 py-6">
+              <a href="https://github.com/Tempyyyyyy/pixie-heart-wishes/releases/latest" target="_blank" rel="noopener noreferrer">
+                <Download className="w-5 h-5 mr-2" />
+                Download Now
+              </a>
+            </Button>
           )}
         </div>
-
-        {/* Compact modpacks sidebar */}
-        <aside>
-          <div className="flex items-end justify-between mb-5">
-            <div>
-              <h2 className="font-display font-bold text-xl flex items-center gap-2">
-                <Box className="w-5 h-5 text-primary" />
-                Сборки
-              </h2>
-              <p className="text-muted-foreground text-xs mt-1">Топ Modrinth</p>
-            </div>
-            <Link to="/modpacks" className="text-xs font-medium text-primary hover:text-primary-glow transition-colors flex items-center gap-1">
-              Все <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-
-          {loadingPacks ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {popularPacks.map(pack => (
-                <button
-                  key={pack.project_id}
-                  onClick={() => setSelected(pack)}
-                  className="group text-left rounded-xl border border-border bg-card p-3 hover:border-primary/50 hover:-translate-y-0.5 transition-all flex gap-3"
-                >
-                  <div className="w-12 h-12 rounded-lg bg-secondary border border-border overflow-hidden shrink-0 flex items-center justify-center">
-                    {pack.icon_url
-                      ? <img src={pack.icon_url} alt={pack.title} className="w-full h-full object-cover" loading="lazy" />
-                      : <Box className="w-5 h-5 text-muted-foreground" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-display font-bold text-sm truncate group-hover:text-primary transition-colors">{pack.title}</div>
-                    <div className="text-[11px] text-muted-foreground truncate">{pack.author}</div>
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
-                      <Download className="w-3 h-3" />{formatNumber(pack.downloads)}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </aside>
       </section>
-
-      {/* POPULAR MODS */}
-      <section className="mt-8 md:mt-12">
-        <div className="flex items-end justify-between mb-4 md:mb-6 gap-3">
-          <div className="min-w-0">
-            <h2 className="font-display font-bold text-xl md:text-3xl flex items-center gap-2">
-              <Sparkles className="w-5 h-5 md:w-7 md:h-7 text-primary shrink-0" />
-              Топ модов
-            </h2>
-            <p className="text-muted-foreground text-xs md:text-sm mt-1 hidden sm:block">Самые скачиваемые моды сообщества</p>
-          </div>
-          <Link to="/library" className="text-xs md:text-sm font-medium text-primary hover:text-primary-glow transition-colors flex items-center gap-1 shrink-0">
-            Все <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
-          </Link>
-        </div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {popularMods.map(mod => (
-            <button
-              key={mod.project_id}
-              onClick={() => setSelected(mod)}
-              className="group text-left rounded-2xl border border-border bg-card p-4 hover:border-primary/50 hover:-translate-y-1 transition-all flex gap-3"
-            >
-              <div className="w-14 h-14 rounded-xl bg-secondary border border-border overflow-hidden shrink-0 flex items-center justify-center">
-                {mod.icon_url
-                  ? <img src={mod.icon_url} alt={mod.title} className="w-full h-full object-cover" loading="lazy" />
-                  : <Package className="w-6 h-6 text-muted-foreground" />}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="font-display font-bold text-sm truncate group-hover:text-primary transition-colors">{mod.title}</div>
-                <p className="text-xs text-muted-foreground line-clamp-2 mt-1 mb-2">{mod.description}</p>
-                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                  <Download className="w-3 h-3" />{formatNumber(mod.downloads)}
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <ModDetailDialog mod={selected} onOpenChange={(v) => !v && setSelected(null)} />
     </Layout>
   );
 };
