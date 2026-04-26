@@ -156,6 +156,9 @@ async function getTopServers(): Promise<ServerHit[]> {
 }
 
 // ----- SKINS -----
+// NameMC блокирует серверные запросы (HTTP 403), поэтому источник трендовых
+// скинов — публичный MineSkin API, а 3D-рендер берём с mc-heads.net.
+// Бонус: больше нет проблемы с эмодзи/флагами в никах NameMC.
 
 type SkinHit = {
   id: string;
@@ -163,79 +166,56 @@ type SkinHit = {
   url: string;
 };
 
-function decode(s: string): string {
-  return s
-    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ");
-}
+type MineSkinEntry = {
+  id?: number | string;
+  skinUuid?: string;
+  uuid?: string;
+  url?: string; // textures.minecraft.net/texture/<hash>
+  name?: string;
+};
 
-function isValidSkinImage(src: string): boolean {
-  // Принимаем только настоящие рендеры скинов с s.namemc.com.
-  // Отсекаем флаги стран, эмодзи Twemoji, аватарки авторов и прочее.
-  if (!src) return false;
-  if (!/^https?:\/\/s\.namemc\.com\//i.test(src)) return false;
-  // s.namemc.com/3d/skin/... или s.namemc.com/i/<hash>.png — это скины.
-  // Флаги обычно лежат на /flag/ или /img/flag/, аватарки — на /avatar/.
-  if (/\/flag\//i.test(src)) return false;
-  if (/\/avatar\//i.test(src)) return false;
-  if (/\/emoji\//i.test(src)) return false;
-  if (/twemoji/i.test(src)) return false;
-  return /\/(3d\/skin|i)\//i.test(src) || /\.png(\?|$)/i.test(src);
-}
-
-function parseSkins(html: string): SkinHit[] {
-  const out: SkinHit[] = [];
-  const seen = new Set<string>();
-  // Несколько вариантов разметки
-  const patterns = [
-    /<a[^>]+href="\/skin\/([a-f0-9]+)"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/g,
-    /href="\/skin\/([a-f0-9]+)"[\s\S]{0,300}?data-src="([^"]+)"/g,
-    /\/skin\/([a-f0-9]{8,})[\s\S]{0,500}?(https:\/\/s\.namemc\.com\/[^"'\s]+\.png)/g,
-  ];
-  for (const re of patterns) {
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(html)) !== null) {
-      const id = m[1];
-      if (seen.has(id)) continue;
-      const candidate = decode(m[2]);
-      // Если картинка не выглядит как скин (флаг/эмодзи/аватар) — строим
-      // канонический URL рендера скина по id, а не используем мусор.
-      const image = isValidSkinImage(candidate)
-        ? candidate
-        : `https://s.namemc.com/3d/skin/body/${id}.png?width=256`;
-      seen.add(id);
-      out.push({
-        id,
-        image,
-        url: `https://namemc.com/skin/${id}`,
-      });
-    }
-  }
-  // Резервный: только id из ссылок, картинку строим сами через s.namemc.com
-  if (out.length < 10) {
-    const re = /href="\/skin\/([a-f0-9]{8,})"/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(html)) !== null) {
-      const id = m[1];
-      if (seen.has(id)) continue;
-      seen.add(id);
-      out.push({
-        id,
-        image: `https://s.namemc.com/3d/skin/body/${id}.png?width=256`,
-        url: `https://namemc.com/skin/${id}`,
-      });
-    }
-  }
-  return out.slice(0, 60);
+function textureHashFromUrl(u: string | undefined): string | null {
+  if (!u) return null;
+  const m = u.match(/texture\/([a-f0-9]+)/i);
+  return m ? m[1] : null;
 }
 
 async function getTopSkins(period: string, page: number): Promise<SkinHit[]> {
   const key = `skins:${period}:${page}`;
   const cached = getCached<SkinHit[]>(key);
   if (cached) return cached;
-  const url = `https://namemc.com/minecraft-skins/trending/${period}?page=${page}`;
-  const html = await fetchHtml(url);
-  const data = parseSkins(html);
+
+  // MineSkin: новые скины. period сейчас не влияет (API не разделяет периоды),
+  // но page прокидываем — пользователь сможет листать.
+  const apiPage = Math.max(0, page - 1);
+  const url = `https://api.mineskin.org/get/list?page=${apiPage}&size=60`;
+  let entries: MineSkinEntry[] = [];
+  try {
+    const r = await fetch(url, { headers: { "user-agent": UA, accept: "application/json" } });
+    if (r.ok) {
+      const j = await r.json();
+      entries = (j?.skins ?? []) as MineSkinEntry[];
+    }
+  } catch (e) {
+    console.error("mineskin fetch failed:", e);
+  }
+
+  const out: SkinHit[] = [];
+  const seen = new Set<string>();
+  for (const e of entries) {
+    const hash = textureHashFromUrl(e.url);
+    if (!hash || seen.has(hash)) continue;
+    seen.add(hash);
+    const id = String(e.skinUuid || e.uuid || e.id || hash);
+    out.push({
+      id,
+      // mc-heads рендерит 3D body по texture-hash или по uuid
+      image: `https://mc-heads.net/body/${hash}/right`,
+      url: `https://mineskin.org/${id}`,
+    });
+  }
+
+  const data = out.slice(0, 48);
   setCached(key, data);
   return data;
 }
