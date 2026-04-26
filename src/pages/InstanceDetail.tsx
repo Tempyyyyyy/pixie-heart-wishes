@@ -60,7 +60,7 @@ const InstanceDetailPage = () => {
 
   // Edit dialog
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", mc_version: "1.20.1", loader: "fabric" });
+  const [form, setForm] = useState({ name: "", description: "", mc_version: "1.21.10", loader: "fabric" });
 
   // Mod picker
   const [pickerOpen, setPickerOpen] = useState(false);
