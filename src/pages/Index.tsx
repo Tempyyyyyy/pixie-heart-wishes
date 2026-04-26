@@ -40,7 +40,7 @@ const Index = () => {
           </div>
           
           <h1 className="text-4xl md:text-6xl lg:text-8xl font-bold mb-6 leading-tight bg-gradient-to-r from-white via-purple-200 via-pink-200 to-purple-400 bg-clip-text text-transparent animate-gradient bg-300% bg-gradient-to-r">
-            The Ultimate<br />Minecraft Experience
+            PixieClient<br />The Ultimate<br />Minecraft Experience
           </h1>
           <p className="text-lg md:text-xl text-gray-400 mb-8 max-w-3xl mx-auto leading-relaxed">
             Fast, smooth, and optimized for maximum performance. Join thousands of players who trust PixieClient.
