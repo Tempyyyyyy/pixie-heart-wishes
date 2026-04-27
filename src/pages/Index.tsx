@@ -527,23 +527,26 @@ const Index = () => {
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {userInstances.map((instance) => (
                   <Link key={instance.id} to={`/instance/${instance.id}`} className="block">
-                    <div className="bg-card rounded-xl p-4 border border-border hover:border-primary/50 transition-all cursor-pointer h-full">
-                      <div className="aspect-video bg-secondary rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                    <div className="bg-card rounded-xl p-4 border border-border hover:border-primary/50 transition-all cursor-pointer flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
                         {instance.icon ? (
                           <img 
                             src={instance.icon} 
                             alt={instance.name}
-                            className="w-full h-full object-contain p-2"
+                            className="w-full h-full object-contain p-1"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).style.display = 'none';
                               (e.currentTarget as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
                             }}
                           />
                         ) : null}
-                        <Layers className="w-8 h-8 text-muted-foreground" style={{ display: instance.icon ? 'none' : 'block' }} />
+                        <Layers className="w-6 h-6 text-muted-foreground" style={{ display: instance.icon ? 'none' : 'block' }} />
                       </div>
-                      <h3 className="font-bold text-sm mb-1">{instance.name}</h3>
-                      <p className="text-xs text-muted-foreground">Твоя сборка</p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-sm mb-1 truncate">{instance.name}</h3>
+                        <p className="text-xs text-muted-foreground mb-1 truncate">Твоя сборка</p>
+                        <p className="text-xs font-medium text-primary">{formatHours(playtime.byInstance[instance.id] || 0)}</p>
+                      </div>
                     </div>
                   </Link>
                 ))}
@@ -568,24 +571,26 @@ const Index = () => {
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {communityModpacks.map((modpack, i) => (
                   <Link key={i} to="/modpacks" className="block">
-                    <div className="bg-card rounded-xl p-4 border border-border hover:border-primary/50 transition-all cursor-pointer h-full">
-                      <div className="aspect-video bg-secondary rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                    <div className="bg-card rounded-xl p-4 border border-border hover:border-primary/50 transition-all cursor-pointer flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
                         {modpack.icon_url ? (
                           <img 
                             src={modpack.icon_url} 
                             alt={modpack.title}
-                            className="w-full h-full object-contain p-2"
+                            className="w-full h-full object-contain p-1"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).style.display = 'none';
                               (e.currentTarget as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
                             }}
                           />
                         ) : null}
-                        <Layers className="w-8 h-8 text-muted-foreground" style={{ display: modpack.icon_url ? 'none' : 'block' }} />
+                        <Layers className="w-6 h-6 text-muted-foreground" style={{ display: modpack.icon_url ? 'none' : 'block' }} />
                       </div>
-                      <h3 className="font-bold text-sm mb-1">{modpack.title}</h3>
-                      <p className="text-xs text-muted-foreground mb-2">{modpack.author}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{modpack.description}</p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-sm mb-1 truncate">{modpack.title}</h3>
+                        <p className="text-xs text-muted-foreground mb-1 truncate">{modpack.author}</p>
+                        <p className="text-xs font-medium text-primary">{modpack.downloads}</p>
+                      </div>
                     </div>
                   </Link>
                 ))}
