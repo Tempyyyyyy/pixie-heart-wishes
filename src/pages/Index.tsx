@@ -6,6 +6,7 @@ import { isElectron } from "@/lib/environment";
 import { Newspaper, Download, Clock, Users, Package, ExternalLink, Loader2, Layers, Zap, Shield, Cpu, Globe, ChevronDown, Menu, X, Monitor, Laptop, Terminal } from "lucide-react";
 import { Link } from "react-router-dom";
 import fallbackImg from "@/assets/hero-bg.jpg";
+import renderImg from "@/assets/3d-render.png";
 import { usePlaytime, formatHours } from "@/lib/launchSettings";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -219,14 +220,17 @@ const Index = () => {
                 </div>
               </div>
 
-              {/* Right Content - 3D Render Placeholder */}
+              {/* Right Content - 3D Render */}
               <div className="relative animate-fade-in-delay">
-                <div className="aspect-square bg-gradient-to-br from-[#1a1a1a] via-[#3b82f6]/10 to-[#0a0a0a] rounded-2xl border border-white/10 flex items-center justify-center overflow-hidden relative group hover:shadow-[0_0_50px_rgba(59,130,246,0.3)] transition-all duration-500">
+                <div className="aspect-square bg-gradient-to-br from-[#1a1a1a] via-[#3b82f6]/10 to-[#0a0a0a] rounded-2xl border border-white/10 overflow-hidden relative group hover:shadow-[0_0_50px_rgba(59,130,246,0.3)] transition-all duration-500">
                   <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/20 via-purple-500/10 to-pink-500/20 animate-gradient-rotate" />
                   <div className="absolute inset-0 bg-[#3b82f6]/5 blur-3xl group-hover:blur-2xl transition-all duration-500" />
-                  <div className="relative z-10 text-center">
-                    <Cpu className="w-32 h-32 text-[#3b82f6] mx-auto mb-4 animate-float-slow group-hover:scale-110 transition-transform duration-500" />
-                    <p className="text-gray-400 text-sm">3D Render Placeholder</p>
+                  <div className="relative z-10 w-full h-full">
+                    <img 
+                      src={renderImg} 
+                      alt="3D Render" 
+                      className="w-full h-full object-cover animate-float-slow group-hover:scale-110 transition-transform duration-500"
+                    />
                   </div>
                 </div>
               </div>
