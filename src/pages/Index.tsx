@@ -222,8 +222,8 @@ const Index = () => {
 
               {/* Right Content - 3D Render */}
               <div className="relative animate-fade-in-delay">
-                <div className="aspect-square bg-gradient-to-br from-[#1a1a1a] via-[#3b82f6]/10 to-[#0a0a0a] rounded-2xl border border-white/10 overflow-hidden relative group hover:shadow-[0_0_50px_rgba(59,130,246,0.3)] transition-all duration-500">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/20 via-purple-500/10 to-pink-500/20 animate-gradient-rotate" />
+                <div className="aspect-square bg-gradient-to-br from-[#1a1a1a] via-[#3b82f6]/5 to-[#0a0a0a] rounded-2xl border border-white/10 overflow-hidden relative group hover:shadow-[0_0_50px_rgba(59,130,246,0.3)] transition-all duration-500">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/10 via-purple-500/5 to-pink-500/10 animate-gradient-rotate" />
                   <div className="absolute inset-0 bg-[#3b82f6]/5 blur-3xl group-hover:blur-2xl transition-all duration-500" />
                   <div className="relative z-10 w-full h-full">
                     <img 
@@ -420,7 +420,7 @@ const Index = () => {
             animation: float 8s ease-in-out infinite 2s;
           }
           .animate-float-slow {
-            animation: float 6s ease-in-out infinite;
+            animation: float 12s ease-in-out infinite;
           }
           @keyframes gradientShift {
             0% { background-position: 0% 50%; }
