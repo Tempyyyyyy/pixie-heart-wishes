@@ -953,7 +953,7 @@ function getToken(uuid) {
 }
 
 // --- Discord RPC ---
-const DISCORD_CLIENT_ID = '903264027732955176'; // Modrinth Client ID as fallback for testing
+const DISCORD_CLIENT_ID = '1498246136245522642';
 let rpc = null;
 let rpcReady = false;
 const startTimestamp = new Date();
