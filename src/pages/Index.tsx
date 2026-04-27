@@ -105,13 +105,13 @@ const Index = () => {
             icon: inst.icon,
           }));
           setUserInstances(userInsts);
-          setInstancesLoaded(true);
+          
         })
         .catch(() => {
           setUserInstances([]);
-          setInstancesLoaded(true);
+          
         })
-        .finally(() => setLoadingInstances(false));
+        .finally(() => { setLoadingInstances(false); setInstancesLoaded(true); });
     }
   }, [isElectronEnv, buildsTab, instancesLoaded]);
 
@@ -691,3 +691,5 @@ const Index = () => {
 };
 
 export default Index;
+
+
