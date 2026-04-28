@@ -97,19 +97,20 @@ const Index = () => {
   useEffect(() => {
     if (isElectronEnv && buildsTab === "my" && !instancesLoaded) {
       setLoadingInstances(true);
+      console.log('Loading instances...');
       (window as any).electron?.listInstances?.()
         .then((instances: any[]) => {
+          console.log('Instances loaded:', instances);
           const userInsts = instances.map((inst: any) => ({
             id: inst.id,
             name: inst.name,
             icon: inst.icon,
           }));
           setUserInstances(userInsts);
-          
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('Error loading instances:', error);
           setUserInstances([]);
-          
         })
         .finally(() => { setLoadingInstances(false); setInstancesLoaded(true); });
     }
@@ -150,7 +151,7 @@ const Index = () => {
               {/* Desktop Navigation */}
               <div className="hidden md:flex items-center gap-8">
                 <a href="#features" className="text-gray-300 hover:text-white transition-colors hover:scale-110 transform">Features</a>
-                <a href="https://discord.gg/pixieclient" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors hover:scale-110 transform">Discord</a>
+                <a href="https://dsc.gg/pixieclient" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors hover:scale-110 transform">Discord</a>
                 <a href="#support" className="text-gray-300 hover:text-white transition-colors hover:scale-110 transform">Support</a>
                 <Button 
                   asChild
@@ -292,13 +293,11 @@ const Index = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-[#3b82f6]/5 via-purple-500/5 to-[#3b82f6]/5 animate-gradient-rotate opacity-50" />
           <div className="max-w-4xl mx-auto text-center relative z-10">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-[#3b82f6] via-purple-500 to-pink-500 bg-clip-text text-transparent">Download PixieClient</h2>
-            <p className="text-gray-400 mb-12">Available for all major operating systems</p>
+            <p className="text-gray-400 mb-12">Available for Windows</p>
             
-            <div className="grid sm:grid-cols-3 gap-6">
+            <div className="grid sm:grid-cols-1 gap-6 max-w-md mx-auto">
               {[
                 { icon: Monitor, name: "Windows", version: "v1.0.0", gradient: "from-[#3b82f6] to-cyan-400" },
-                { icon: Laptop, name: "macOS", version: "v1.0.0", gradient: "from-purple-500 to-pink-500" },
-                { icon: Terminal, name: "Linux", version: "v1.0.0", gradient: "from-pink-500 to-[#3b82f6]" },
               ].map((os, i) => (
                 <div 
                   key={i}

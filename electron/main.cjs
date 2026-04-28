@@ -38,6 +38,9 @@ function createWindow() {
 
   Menu.setApplicationMenu(null);
   
+  // Open DevTools for debugging
+  mainWindow.webContents.openDevTools();
+  
   if (LAUNCHER_URL) {
     mainWindow.loadURL(LAUNCHER_URL);
   } else {
